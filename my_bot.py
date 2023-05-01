@@ -5,7 +5,10 @@ import os
 import socket
 import json
 
-from ai_func import generate_summary, generate_embedding
+from ai_func import generate_summary, extract_keywords_from_summary
+from ai_func import summary_to_obsidian_markdown
+from ai_func import generate_embedding
+
 from wget_func import get_url_content
 
 #client = discord.Client()
@@ -57,7 +60,7 @@ def get_file_path(url):
     return (file_type, f'{path}/{file_name}')
 
 # save the content into a JSON file
-def save_content(file_type, file_path, content, url, summary, keywords, embeddings):
+def save_content(file_type, file_path, content, url, summary, keywords, embeddings, obsidian_markdown):
     # Create a dictionary for the content
     content_dict = {
         'url': url,
@@ -66,6 +69,7 @@ def save_content(file_type, file_path, content, url, summary, keywords, embeddin
         'summary': summary,
         'keywords': keywords,
         'embeddings': embeddings,
+        'obsidian_markdown': obsidian_markdown,
     }
     # Save the content to a JSON file
     with open(file_path, 'w') as file:
@@ -90,16 +94,19 @@ async def on_message(message):
             file_type, file_path = get_file_path(url)
             #with open(file_path, 'w') as file:
             #    file.write(content)
-            summary_dict = generate_summary(content, summary_type=file_type)
+            summary = generate_summary(content, summary_type=file_type)
+            keywords = extract_keywords_from_summary(summary)
             embedding = generate_embedding(content)
+            obsidian_markdown = summary_to_obsidian_markdown(summary, keywords)
             save_content(file_type=file_type, 
                          file_path=file_path, 
                          content=content, 
                          url=url, 
-                         summary=summary_dict['summary'], 
-                         keywords=summary_dict['keywords'], 
-                         embeddings=embedding)
-            await message.channel.send(f'Text content saved to {file_path}\n\n{summary_dict["summary"]}\n\nKeywords: {summary_dict["keywords"]}')
+                         summary=summary, 
+                         keywords=keywords, 
+                         embeddings=embedding,
+                         obsidian_markdown=obsidian_markdown)
+            await message.channel.send(f'Text content saved to {file_path}\n\n{summary}\n\nKeywords: {keywords}')
         except socket.gaierror as e:
             print(f'Error downloading URL "{url}": {str(e)}')
 
