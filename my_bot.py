@@ -5,7 +5,7 @@ import os
 import socket
 import json
 
-from ai_func import generate_summary
+from ai_func import generate_summary, generate_embedding
 from wget_func import get_url_content
 
 #client = discord.Client()
@@ -57,13 +57,15 @@ def get_file_path(url):
     return (file_type, f'{path}/{file_name}')
 
 # save the content into a JSON file
-def save_content(file_type, file_path, content, url, summary, keywords):
+def save_content(file_type, file_path, content, url, summary, keywords, embeddings):
     # Create a dictionary for the content
     content_dict = {
         'url': url,
+        'type': file_type, # 'github', 'arxiv', 'general
         'content': content,
         'summary': summary,
-        'keywords': keywords
+        'keywords': keywords,
+        'embeddings': embeddings,
     }
     # Save the content to a JSON file
     with open(file_path, 'w') as file:
@@ -89,7 +91,14 @@ async def on_message(message):
             #with open(file_path, 'w') as file:
             #    file.write(content)
             summary_dict = generate_summary(content, summary_type=file_type)
-            save_content(file_type, file_path, content, url, summary_dict['summary'], summary_dict['keywords'])
+            embedding = generate_embedding(content)
+            save_content(file_type=file_type, 
+                         file_path=file_path, 
+                         content=content, 
+                         url=url, 
+                         summary=summary_dict['summary'], 
+                         keywords=summary_dict['keywords'], 
+                         embeddings=embedding)
             await message.channel.send(f'Text content saved to {file_path}\n\n{summary_dict["summary"]}\n\nKeywords: {summary_dict["keywords"]}')
         except socket.gaierror as e:
             print(f'Error downloading URL "{url}": {str(e)}')

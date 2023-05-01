@@ -3,9 +3,15 @@ import openai
 
 openai.api_key = os.environ['OPENAI_KEY']
 
+def is_chinese(text):
+    if any(u'\u4e00' <= c <= u'\u9fff' for c in text):
+        return True
+    return False
+
 def generate_summary(text_snippet, summary_type='general'):
 
     max_input_words = 2000
+    max_input_words_chinese = 1000
     max_output_tokens = 1000
     total_tokens = 4097  # Assuming an average of 2 tokens per word
 
@@ -14,7 +20,10 @@ def generate_summary(text_snippet, summary_type='general'):
 
     # Truncate the text snippet if it's too long
     words = text_snippet.split()
-    if len(words) > max_input_words:
+    # for non-English text, we need to use a different method to split the text into words and fit the token size
+    if is_chinese(text_snippet):
+        text_snippet = text_snippet[:max_input_words_chinese]
+    elif len(words) > max_input_words:
         words = words[:max_input_words]
         text_snippet = " ".join(words)
 
@@ -41,7 +50,7 @@ def generate_summary(text_snippet, summary_type='general'):
 
     summary = response.choices[0].text.strip()
 
-    keyword_prompt = 'Please provide keywords for the following text:'
+    keyword_prompt = 'Please provide a list of concise, relevant keywords in English-only, separated by commas, for the following text:'
     prompt = f'{keyword_prompt}\n\n{text_snippet}'
 
     response = openai.Completion.create(
@@ -62,3 +71,9 @@ def generate_summary(text_snippet, summary_type='general'):
     }
 
     return result
+
+def generate_embedding(text_snippet):
+    embedding = openai.Embedding.create(
+        input=text_snippet, model="text-embedding-ada-002"
+    )["data"][0]["embedding"]
+    return embedding
