@@ -11,34 +11,34 @@ Dont-Read-GPT is a Discord bot designed to help you save time by summarizing web
 ## Installation
 
 1. Clone the repository:
-\```
+```
 git clone https://github.com/your_username/dont-read-gpt.git
-\```
+```
 
 2. Change to the project directory:
-\```
+```
 cd dont-read-gpt
-\```
+```
 
 3. Install the required dependencies:
-\```
+```
 pip install -r requirements.txt
-\```
+```
 
 4. Set up your OpenAI API key:
-\```
+```
 export OPENAI_KEY="your_openai_api_key"
-\```
+```
 
 5. Set up your Discord bot token:
-\```
+```
 export DISCORD_BOT_TOKEN="your_discord_bot_token"
-\```
+```
 
 6. Run the bot:
-\```
-python bot.py
-\```
+```
+python my_bot.py
+```
 
 ## Usage
 
@@ -49,19 +49,19 @@ Invite the Dont-Read-GPT bot to your Discord server and use the following comman
 ## Examples
 
 - Summarize a tech blog post:
-\```
-!wget https://example.com/blog-post
-\```
+```
+!wget https://toooold.com/2023/04/08/magnificient_underdogs.html
+```
 
 - Summarize an ArXiv paper:
-\```
-!wget https://arxiv.org/abs/2109.00001
-\```
+```
+!wget https://arxiv.org/abs/1706.03762
+```
 
 - Summarize a GitHub repository:
-\```
-!wget https://github.com/your_username/repository
-\```
+```
+!wget https://github.com/phunterlau/dont-read-gpt
+```
 
 ## Contributing
 
