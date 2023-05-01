@@ -62,7 +62,7 @@ def generate_embedding(text_snippet):
 def extract_keywords_from_summary(summary):
     prompt = (
         f"Given the following summary, identify important keywords or phrases that would be suitable for creating internal links in Obsidian. These keywords should represent the main concepts, topics, or entities in the summary:\n\n{summary}\n\n"
-        f"Obsidian Keywords:"
+        f"Please provide a list of Obsidian Keywords, separated by commas:"
     )
     response = openai.Completion.create(
         engine="text-davinci-003",
