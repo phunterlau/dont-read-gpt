@@ -12,7 +12,7 @@ Dont-Read-GPT is a Discord bot designed to help you save time by summarizing web
 
 1. Clone the repository:
 ```
-git clone https://github.com/your_username/dont-read-gpt.git
+git clone https://github.com/phunterlau/dont-read-gpt
 ```
 
 2. Change to the project directory:

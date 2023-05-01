@@ -1,0 +1,5 @@
+beautifulsoup4==4.12.2
+discord.py==2.2.2
+github3.py==4.0.0
+openai==0.27.5
+soupsieve==2.4.1
