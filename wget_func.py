@@ -37,10 +37,21 @@ def get_github_content(url):
     repo_name = parts[4]
     gh = github3.GitHub()
     repo = gh.repository(username, repo_name)
-    try:
-        readme_file = repo.file_contents('README.md', ref='master')
-    except github3.exceptions.NotFoundError:
-        readme_file = repo.file_contents('README.md', ref='main')
+
+    readme_file = None
+    branches = ['master', 'main']
+    readme_variants = ['README.md', 'readme.md', 'Readme.md', 'readMe.md', 'README.MD']
+
+    for branch in branches:
+        for readme_variant in readme_variants:
+            try:
+                readme_file = repo.file_contents(readme_variant, ref=branch)
+                break
+            except github3.exceptions.NotFoundError:
+                pass
+        if readme_file:
+            break
+
     if readme_file:
         content = readme_file.decoded.decode('utf-8')
     else:
