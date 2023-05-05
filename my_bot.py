@@ -23,6 +23,7 @@ client = discord.Client(intents=intents)
 def get_file_path(url):
     # Generate the file name based on the URL and the current timestamp
     prefix = ''
+    time_now = time.time() 
     if not url.startswith('http://') and not url.startswith('https://'):
         url = 'https://' + url
     if 'github.com' in url:
@@ -43,10 +44,10 @@ def get_file_path(url):
         file_name = re.sub('[^0-9a-zA-Z]+', '', url)
         if len(file_name) > 100:
             file_name = file_name[:100]
-    file_name += '_' + str(int(time.time())) + '.json'
+    file_name += '_' + str(int(time_now)) + '.json'
 
     # Get the current date and create the directory path
-    date_time = time.localtime(time.time())
+    date_time = time.localtime(time_now)
     year, month, day = str(date_time.tm_year), str(date_time.tm_mon).zfill(2), str(date_time.tm_mday).zfill(2)
     path = f'saved_text/{year}_{month}_{day}'
 
@@ -57,14 +58,15 @@ def get_file_path(url):
     if not file_type in ('github', 'arxiv'):
         file_type = 'general'
     # Return the file type and file path
-    return (file_type, f'{path}/{file_name}')
+    return (file_type, f'{path}/{file_name}', str(int(time_now)))
 
 # save the content into a JSON file
-def save_content(file_type, file_path, content, url, summary, keywords, embeddings, obsidian_markdown):
+def save_content(file_type, file_path, timestamp, content, url, summary, keywords, embeddings, obsidian_markdown):
     # Create a dictionary for the content
     content_dict = {
         'url': url,
         'type': file_type, # 'github', 'arxiv', 'general
+        'timestamp': timestamp,
         'content': content,
         'summary': summary,
         'keywords': keywords,
@@ -91,7 +93,7 @@ async def on_message(message):
         try:
             content = get_url_content(url)
             # Save the content to a local file
-            file_type, file_path = get_file_path(url)
+            file_type, file_path, time_now = get_file_path(url)
             #with open(file_path, 'w') as file:
             #    file.write(content)
             summary = generate_summary(content, summary_type=file_type)
@@ -100,6 +102,7 @@ async def on_message(message):
             obsidian_markdown = summary_to_obsidian_markdown(summary, keywords)
             save_content(file_type=file_type, 
                          file_path=file_path, 
+                         timestamp=time_now,
                          content=content, 
                          url=url, 
                          summary=summary, 

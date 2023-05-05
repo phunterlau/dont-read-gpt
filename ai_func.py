@@ -1,6 +1,8 @@
 import os
 import openai
 import re
+import backoff
+from functools import partial
 
 openai.api_key = os.environ['OPENAI_KEY']
 
@@ -8,6 +10,25 @@ def is_chinese(text):
     if any(u'\u4e00' <= c <= u'\u9fff' for c in text):
         return True
     return False
+
+# Retry with exponential backoff just in case OpenAI API is temporarily unavailable
+@backoff.on_exception(
+    partial(backoff.expo, max_value=50),
+    (openai.error.RateLimitError, openai.error.APIError),
+)
+def gen_gpt_completion(prompt, temp=0.0, engine="text-davinci-003", max_tokens=100, 
+                       top_p=1, frequency_penalty=0, presence_penalty=0,):
+    response = openai.Completion.create(
+        engine="text-davinci-003",
+        prompt=prompt,
+        max_tokens=max_tokens,
+        temperature=0.5,
+        top_p=1,
+        stop = None,
+        #frequency_penalty=0.5,
+        #presence_penalty=0.5,
+    )
+    return response
 
 def generate_summary(text_snippet, summary_type='general'):
 
@@ -40,14 +61,15 @@ def generate_summary(text_snippet, summary_type='general'):
 
     prompt = prompts.get(summary_type, prompts['general'])
 
-    response = openai.Completion.create(
-        engine='text-davinci-003',
-        prompt=prompt,
-        max_tokens=max_output_tokens,
-        n=1,
-        stop=None,
-        temperature=0.5,
-    )
+    #response = openai.Completion.create(
+    #    engine='text-davinci-003',
+    #    prompt=prompt,
+    #    max_tokens=max_output_tokens,
+    #    n=1,
+    #    stop=None,
+    #    temperature=0.5,
+    #)
+    response = gen_gpt_completion(prompt, max_tokens=max_output_tokens)
 
     summary = response.choices[0].text.strip()
 
@@ -64,14 +86,15 @@ def extract_keywords_from_summary(summary):
         f"Given the following summary, identify important keywords or phrases that would be suitable for creating internal links in Obsidian. These keywords should represent the main concepts, topics, or entities in the summary:\n\n{summary}\n\n"
         f"Please provide a list of Obsidian Keywords, separated by commas:"
     )
-    response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=prompt,
-        max_tokens=100,
-        n=1,
-        stop=None,
-        temperature=0.5,
-    )
+    #response = openai.Completion.create(
+    #    engine="text-davinci-003",
+    #    prompt=prompt,
+    #    max_tokens=100,
+    #    n=1,
+    #    stop=None,
+    #    temperature=0.5,
+    #)
+    response = gen_gpt_completion(prompt, max_tokens=100)
 
     keywords = response.choices[0].text.strip().split(', ')
     return keywords
