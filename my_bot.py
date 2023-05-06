@@ -10,6 +10,7 @@ from ai_func import summary_to_obsidian_markdown
 from ai_func import generate_embedding
 
 from wget_func import get_url_content
+from wget_func import download_arxiv_pdf
 
 #client = discord.Client()
 intents = discord.Intents.default()
@@ -76,6 +77,12 @@ def save_content(file_type, file_path, timestamp, content, url, summary, keyword
     # Save the content to a JSON file
     with open(file_path, 'w') as file:
         json.dump(content_dict, file, indent=4)
+
+    if file_type == 'arxiv':
+        pdf_file_name = file_path.replace('.json', '.pdf')
+        download_arxiv_pdf(url, os.path.dirname(pdf_file_name))
+    
+    return 
 
 @client.event
 async def on_ready():

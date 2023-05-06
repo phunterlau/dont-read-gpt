@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import github3
 import requests
+import os
 
 def get_html_content(url):
     response = requests.get(url)
@@ -12,10 +13,29 @@ def get_html_content(url):
 
     return content
 
+def download_arxiv_pdf(arxiv_link, local_directory):
+    if arxiv_link.startswith("https://arxiv.org/abs/"):
+        pdf_link = arxiv_link.replace("https://arxiv.org/abs/", "https://arxiv.org/pdf/") + ".pdf"
+    elif arxiv_link.startswith("https://arxiv.org/pdf/") and arxiv_link.endswith(".pdf"):
+        pdf_link = arxiv_link
+    else:
+        raise ValueError("Invalid arXiv link")
+
+    pdf_filename = pdf_link.split("/")[-1]
+    local_file_path = os.path.join(local_directory, pdf_filename)
+
+    response = requests.get(pdf_link)
+    response.raise_for_status()
+
+    with open(local_file_path, "wb") as f:
+        f.write(response.content)
+
+    print(f"PDF downloaded to: {local_file_path}")
+
 def get_arxiv_content(url):
     if '/pdf/' in url:
         # If the URL is a PDF link, construct the corresponding abstract link
-        url = url.replace('/pdf/', '/abs/', 1)
+        url = url.replace('/pdf/', '/abs/', 1).replace('.pdf', '', 1)
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
     title = soup.find('h1', class_='title mathjax').text.strip()
