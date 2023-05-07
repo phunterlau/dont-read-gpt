@@ -14,7 +14,7 @@ def is_chinese(text):
 # Retry with exponential backoff just in case OpenAI API is temporarily unavailable
 @backoff.on_exception(
     partial(backoff.expo, max_value=50),
-    (openai.error.RateLimitError, openai.error.APIError),
+    (openai.error.RateLimitError, openai.error.APIError, openai.error.APIConnectionError),
 )
 def gen_gpt_completion(prompt, temp=0.0, engine="text-davinci-003", max_tokens=100, 
                        top_p=1, frequency_penalty=0, presence_penalty=0,):
