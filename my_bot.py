@@ -12,6 +12,8 @@ from ai_func import generate_embedding
 from wget_func import get_url_content
 from wget_func import download_arxiv_pdf
 
+from mastodon_func import post_masotodon
+
 #client = discord.Client()
 intents = discord.Intents.default()
 intents.members = True # Enable the privileged members intent
@@ -59,7 +61,7 @@ def get_file_path(url):
     if not file_type in ('github', 'arxiv'):
         file_type = 'general'
     # Return the file type and file path
-    return (file_type, f'{path}/{file_name}', str(int(time_now)))
+    return (file_type, f'{path}/{file_name}', str(int(time_now)), url)
 
 # save the content into a JSON file
 def save_content(file_type, file_path, timestamp, content, url, summary, keywords, embeddings, obsidian_markdown):
@@ -84,6 +86,13 @@ def save_content(file_type, file_path, timestamp, content, url, summary, keyword
     
     return 
 
+def post_mastodon_toot(url, summary, keywords):
+    # Generate the toot content
+    toot_content = f'{url}\n#knowledgeGPT\n{summary}\n\nKeywords: {keywords}\n\n'[:500]
+    # Post the toot
+    post_masotodon(toot_content)
+    return
+
 @client.event
 async def on_ready():
     print('Logged in as {0.user}'.format(client))
@@ -95,12 +104,12 @@ async def on_message(message):
 
     if message.content.startswith('!wget'):
         url = message.content.split(' ', 1)[1] # get the URL from the message content after the command
-
+        post_flag = message.content.split(' ')[-1] # get the post flag from the message content after the command
         # Get the content for the URL
         try:
             content = get_url_content(url)
             # Save the content to a local file
-            file_type, file_path, time_now = get_file_path(url)
+            file_type, file_path, time_now, complete_url = get_file_path(url)
             #with open(file_path, 'w') as file:
             #    file.write(content)
             summary = generate_summary(content, summary_type=file_type)
@@ -111,12 +120,15 @@ async def on_message(message):
                          file_path=file_path, 
                          timestamp=time_now,
                          content=content, 
-                         url=url, 
+                         url=complete_url, 
                          summary=summary, 
                          keywords=keywords, 
                          embeddings=embedding,
                          obsidian_markdown=obsidian_markdown)
-            await message.channel.send(f'Text content saved to {file_path}\n\n{summary}\n\nKeywords: {keywords}')
+            await message.channel.send(f'Saved {complete_url}\n\n{summary}\n\nKeywords: {keywords}')
+            if not post_flag == 'nopost':
+                post_mastodon_toot(complete_url, summary, keywords)
+                await message.channel.send(f'Posted to Mastodon')
         except socket.gaierror as e:
             print(f'Error downloading URL "{url}": {str(e)}')
 
