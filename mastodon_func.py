@@ -3,6 +3,7 @@ from mastodon import Mastodon
 instance_url = "https://cmm.fyi"
 
 # Log in with the bot's access token
+# You can generate an access token for your bot using masotodon_reg.py
 mastodon = Mastodon(
     access_token="user_secret.txt",
     api_base_url=instance_url
