@@ -5,7 +5,7 @@ import backoff
 from functools import partial
 
 openai.api_key = os.environ['OPENAI_KEY']
-client = openai.OpenAI()
+client = openai.OpenAI(api_key=os.environ['OPENAI_KEY'])
 
 def is_chinese(text):
     if any(u'\u4e00' <= c <= u'\u9fff' for c in text):
