@@ -84,6 +84,11 @@ def save_content(file_type, file_path, timestamp, content, url, summary, keyword
         pdf_file_name = file_path.replace('.json', '.pdf')
         download_arxiv_pdf(url, os.path.dirname(pdf_file_name))
     
+    # append the metadata above to an index file
+    # to support tail function to load the latest content
+    with open('saved_text/index.csv', 'a') as index_file:
+        index_file.write(f'{file_type},{timestamp},{file_path}\n')
+
     return 
 
 def post_mastodon_toot(url, summary, keywords):
@@ -125,12 +130,30 @@ async def on_message(message):
                          keywords=keywords, 
                          embeddings=embedding,
                          obsidian_markdown=obsidian_markdown)
-            await message.channel.send(f'Saved {complete_url}\n\n{summary}\n\nKeywords: {keywords}')
+            await message.channel.send(f'Saved {complete_url}\n\n{summary}\n\nKeywords: {keywords}'[:2000])
             if not post_flag == 'nopost':
                 post_mastodon_toot(complete_url, summary, keywords)
                 await message.channel.send(f'Posted to Mastodon')
         except socket.gaierror as e:
             print(f'Error downloading URL "{url}": {str(e)}')
+
+    # tail function to load the latest content
+    if message.content.startswith('!tail'):
+        # Get the number of lines to load
+        num_lines = int(message.content.split(' ', 1)[1])
+        # Load the index file
+        with open('saved_text/index.csv', 'r') as index_file:
+            lines = index_file.readlines()
+            # Get the last n lines
+            last_lines = lines[-num_lines:]
+            # Load the content from the files
+            for line in last_lines:
+                file_type, timestamp, file_path = line.strip().split(',')
+                with open(file_path, 'r') as file:
+                    content_dict = json.load(file)
+                    # Send the content to the Discord channel
+                    await message.channel.send(f'{content_dict["url"]}\n\n{content_dict["summary"]}\n\nKeywords: {content_dict["keywords"]}')
+    
 
 if __name__ == '__main__':
     client.run(discord_token)
