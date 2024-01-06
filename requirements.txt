@@ -6,3 +6,4 @@ soupsieve==2.4.1
 numpy
 backoff==2.2.1
 Mastodon.py
+youtube_transcript_api

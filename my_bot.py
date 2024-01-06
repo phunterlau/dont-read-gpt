@@ -26,7 +26,11 @@ client = discord.Client(intents=intents)
 def get_file_path(url):
     # Generate the file name based on the URL and the current timestamp
     prefix = ''
-    time_now = time.time() 
+    time_now = time.time()
+    youtube_regex = (
+        r'(https?://)?(www\.)?'
+        '(youtube|youtu|youtube-nocookie)\.(com|be)/'
+        '(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
     if not url.startswith('http://') and not url.startswith('https://'):
         url = 'https://' + url
     if 'github.com' in url:
@@ -43,6 +47,10 @@ def get_file_path(url):
     elif 'mp.weixin.qq.com' in url:
         prefix = re.findall('/s/([^/]+)', url)[0]
         file_name = f'{prefix}'
+    elif re.match(youtube_regex, url):
+        prefix = 'youtube'
+        youtube_id = re.match(youtube_regex, url).group(6)
+        file_name = f'{prefix}_{youtube_id}'
     else:
         file_name = re.sub('[^0-9a-zA-Z]+', '', url)
         if len(file_name) > 100:
@@ -58,7 +66,7 @@ def get_file_path(url):
     os.makedirs(path, exist_ok=True)
 
     file_type = prefix
-    if not file_type in ('github', 'arxiv'):
+    if not file_type in ('github', 'arxiv', 'youtube'):
         file_type = 'general'
     # Return the file type and file path
     return (file_type, f'{path}/{file_name}', str(int(time_now)), url)

@@ -2,6 +2,8 @@ from bs4 import BeautifulSoup
 import github3
 import requests
 import os
+import re
+from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound
 
 def get_html_content(url):
     headers = {
@@ -91,6 +93,61 @@ def get_github_content(url):
 
     return content
 
+
+def extract_video_id(url):
+    """
+    Extracts the video ID from a YouTube URL.
+    """
+    youtube_regex = (
+        r'(https?://)?(www\.)?'
+        '(youtube|youtu|youtube-nocookie)\.(com|be)/'
+        '(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
+
+    youtube_regex_match = re.match(youtube_regex, url)
+    if youtube_regex_match:
+        return youtube_regex_match.group(6)
+    return None
+
+def get_youtube_transcript_content(url):
+    video_id = extract_video_id(url)
+
+    if video_id is None:
+        return "Video ID not found."
+
+    try:
+        # Fetching the transcript
+        transcripts_list = YouTubeTranscriptApi.list_transcripts(video_id)
+
+        preferred_languages = ['en', 'zh-Hans', 'zh-Hant']  # English, Simplified Chinese, Traditional Chinese
+        transcript = None
+
+        for lang in preferred_languages:
+            if lang in [transcript.language_code for transcript in transcripts_list]:
+                transcript = transcripts_list.find_transcript([lang])
+                break
+
+        if not transcript:
+            return "No suitable transcript found."
+
+        # Fetching the actual transcript data
+        transcript_data = transcript.fetch()
+
+        # Formatting the transcript text
+        formatted_transcript = ', '.join([item['text'] for item in transcript_data])
+        return formatted_transcript
+
+    except NoTranscriptFound:
+        return "No transcript found for this video."
+
+def if_youtube(url):
+    youtube_regex = (
+        r'(https?://)?(www\.)?'
+        '(youtube|youtu|youtube-nocookie)\.(com|be)/'
+        '(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
+    youtube_regex_match = re.match(youtube_regex, url)
+    if youtube_regex_match:
+        return True
+
 def get_url_content(url):
     # Check if the URL includes a scheme, and add "https://" by default if not
     if not url.startswith('http://') and not url.startswith('https://'):
@@ -102,6 +159,14 @@ def get_url_content(url):
     # Check if the URL is a GitHub repository and get the README file content
     elif 'github.com' in url:
         return get_github_content(url)
+    # Check if the URL is a YouTube video and get the transcript
+    elif if_youtube(url):
+        return get_youtube_transcript_content(url)
     else:
         # Get the content for the URL as text-only HTML response
         return get_html_content(url)
+
+if __name__ == '__main__':
+    # Test the function
+    url = "https://www.youtube.com/watch?v=GKr5URJvNDQ&ab_channel=PromptEngineer"
+    print(get_youtube_transcript_content(url))
