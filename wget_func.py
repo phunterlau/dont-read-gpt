@@ -38,7 +38,22 @@ def download_arxiv_pdf(arxiv_link, local_directory):
 
     print(f"PDF downloaded to: {local_file_path}")
 
-def get_arxiv_content(url):
+def extract_arxiv_id(url):
+    # Patterns for different types of Arxiv URLs
+    patterns = [
+        r'https://browse\.arxiv\.org/html/(\d{4}\.\d{4,5})v?\d*',  # HTML version
+        r'https://arxiv\.org/abs/(\d{4}\.\d{4,5})',                # Abstract page
+        r'https://arxiv\.org/pdf/(\d{4}\.\d{4,5})\.pdf'            # PDF version
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            return match.group(1)
+
+    return None
+
+def get_arxiv_content_old_version(url):
     if '/pdf/' in url:
         # If the URL is a PDF link, construct the corresponding abstract link
         url = url.replace('/pdf/', '/abs/', 1).replace('.pdf', '', 1)
@@ -52,6 +67,62 @@ def get_arxiv_content(url):
     content = '\n'.join([line for line in content.split('\n') if line.strip()])
 
     return content
+
+def fetch_arxiv_page(arxiv_id):
+    url = f"https://browse.arxiv.org/html/{arxiv_id}v1"  # Adjust version as needed
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.text
+    else:
+        return None
+
+def parse_html(html_content):
+    soup = BeautifulSoup(html_content, 'html.parser')
+
+    sections = {}
+
+    # Extract title from <h1>
+    title = soup.find('h1')
+    if title:
+        sections["Title"] = title.get_text(strip=True)
+
+    # Extract abstract
+    abstract_div = soup.find('div', class_='ltx_abstract')
+    if abstract_div:
+        abstract = abstract_div.find('p')
+        if abstract:
+            sections["Abstract"] = abstract.get_text(strip=True)
+
+    # Extract sections from <h2>
+    for heading in soup.find_all('h2', class_='ltx_title ltx_title_section'):
+        # Removing any <span> elements (like section numbers) from the heading
+        for span in heading.find_all('span', class_='ltx_tag ltx_tag_section'):
+            span.decompose()
+        section_name = heading.get_text(strip=True)
+
+        # Extracting content under the section
+        content = []
+        for sibling in heading.find_next_siblings():
+            if sibling.name == 'h2':
+                break
+            content.append(sibling.get_text(strip=True))
+        sections[section_name] = ' '.join(content)
+
+    return sections
+
+# new version of get_arxiv_content by including html version
+# now we get the ID first, and then construct the html version link
+def get_arxiv_content(url):
+    arxiv_id = extract_arxiv_id(url)
+    if arxiv_id is None:
+        return "Arxiv ID not found."
+    arxiv_html_content = fetch_arxiv_page(arxiv_id)
+    if arxiv_html_content:
+        arxiv_sections = parse_html(arxiv_html_content)
+        content = '\n\n'.join([f'**{section_name}**\n{section_content}' for section_name, section_content in arxiv_sections.items()])
+        return content
+    else:
+        return "Arxiv page not found."
 
 def get_github_content(url):
     if url.endswith('/'):
@@ -154,7 +225,7 @@ def get_url_content(url):
         url = 'https://' + url
 
     # Check if the URL is an arXiv link and get its title and abstract
-    if 'arxiv.org/abs/' in url or 'arxiv.org/pdf/' in url:
+    if 'arxiv.org/abs/' in url or 'arxiv.org/pdf/' in url or 'browse.arxiv.org/html/' in url:
         return get_arxiv_content(url)
     # Check if the URL is a GitHub repository and get the README file content
     elif 'github.com' in url:
