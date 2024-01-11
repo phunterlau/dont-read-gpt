@@ -38,18 +38,23 @@ def download_arxiv_pdf(arxiv_link, local_directory):
 
     print(f"PDF downloaded to: {local_file_path}")
 
-def extract_arxiv_id(url):
+def extract_arxiv_id(url, include_version=False):
     # Patterns for different types of Arxiv URLs
     patterns = [
-        r'https://browse\.arxiv\.org/html/(\d{4}\.\d{4,5})v?\d*',  # HTML version
+        r'https://browse\.arxiv\.org/html/(\d{4}\.\d{4,5}v?\d*)',  # HTML version
         r'https://arxiv\.org/abs/(\d{4}\.\d{4,5})',                # Abstract page
-        r'https://arxiv\.org/pdf/(\d{4}\.\d{4,5})\.pdf'            # PDF version
+        r'https://arxiv\.org/pdf/(\d{4}\.\d{4,5}v?\d*)\.pdf'       # PDF version
     ]
 
     for pattern in patterns:
         match = re.search(pattern, url)
         if match:
-            return match.group(1)
+            arxiv_id_full = match.group(1)
+            # Extract base Arxiv ID without version if not required
+            if not include_version:
+                arxiv_id_base = re.match(r'(\d{4}\.\d{4,5})', arxiv_id_full).group(1)
+                return arxiv_id_base
+            return arxiv_id_full
 
     return None
 
