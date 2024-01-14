@@ -31,6 +31,7 @@ def get_file_path(url):
         r'(https?://)?(www\.)?'
         '(youtube|youtu|youtube-nocookie)\.(com|be)/'
         '(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
+    huggingface_regex = (r'https?:\/\/huggingface\.co\/([^\/]+\/[^\/]+)')
     if not url.startswith('http://') and not url.startswith('https://'):
         url = 'https://' + url
     if 'github.com' in url:
@@ -51,6 +52,10 @@ def get_file_path(url):
         prefix = 'youtube'
         youtube_id = re.match(youtube_regex, url).group(6)
         file_name = f'{prefix}_{youtube_id}'
+    elif re.match(huggingface_regex, url):
+        prefix = 'huggingface'
+        huggingface_id = re.match(huggingface_regex, url).group(1).replace('/', '-')
+        file_name = f'{prefix}_{huggingface_id}'
     else:
         file_name = re.sub('[^0-9a-zA-Z]+', '', url)
         if len(file_name) > 100:
@@ -66,7 +71,7 @@ def get_file_path(url):
     os.makedirs(path, exist_ok=True)
 
     file_type = prefix
-    if not file_type in ('github', 'arxiv', 'youtube'):
+    if not file_type in ('github', 'arxiv', 'youtube', 'huggingface'):
         file_type = 'general'
     # Return the file type and file path
     return (file_type, f'{path}/{file_name}', str(int(time_now)), url)
@@ -139,9 +144,9 @@ async def on_message(message):
                          embeddings=embedding,
                          obsidian_markdown=obsidian_markdown)
             await message.channel.send(f'Saved {complete_url}\n\n{summary}\n\nKeywords: {keywords}'[:2000])
-            if not post_flag == 'nopost':
-                post_mastodon_toot(complete_url, summary, keywords)
-                await message.channel.send(f'Posted to Mastodon')
+            #if not post_flag == 'nopost':
+            #    post_mastodon_toot(complete_url, summary, keywords)
+            #    await message.channel.send(f'Posted to Mastodon')
         except socket.gaierror as e:
             print(f'Error downloading URL "{url}": {str(e)}')
 
