@@ -194,7 +194,7 @@ def get_youtube_transcript_content(url):
         # Fetching the transcript
         transcripts_list = YouTubeTranscriptApi.list_transcripts(video_id)
 
-        preferred_languages = ['en', 'zh-Hans', 'zh-Hant']  # English, Simplified Chinese, Traditional Chinese
+        preferred_languages = ['en', 'en-US', 'zh-Hans', 'zh-Hant']  # English, Simplified Chinese, Traditional Chinese
         transcript = None
 
         for lang in preferred_languages:
