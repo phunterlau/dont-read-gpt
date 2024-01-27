@@ -144,9 +144,9 @@ async def on_message(message):
                          embeddings=embedding,
                          obsidian_markdown=obsidian_markdown)
             await message.channel.send(f'Saved {complete_url}\n\n{summary}\n\nKeywords: {keywords}'[:2000])
-            #if not post_flag == 'nopost':
-            #    post_mastodon_toot(complete_url, summary, keywords)
-            #    await message.channel.send(f'Posted to Mastodon')
+            if not post_flag == 'nopost':
+                post_mastodon_toot(complete_url, summary, keywords)
+                await message.channel.send(f'Posted to Mastodon')
         except socket.gaierror as e:
             print(f'Error downloading URL "{url}": {str(e)}')
 
