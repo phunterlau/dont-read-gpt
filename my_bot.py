@@ -34,12 +34,19 @@ def get_file_path(url):
     huggingface_regex = (r'https?:\/\/huggingface\.co\/([^\/]+\/[^\/]+)')
     if not url.startswith('http://') and not url.startswith('https://'):
         url = 'https://' + url
-    if 'github.com' in url:
+    if 'github.com' in url and not 'ipynb' in url:
         prefix = 'github'
         parts = url.split('/')
         username = parts[3]
         repo_name = parts[4]
         file_name = f'{prefix}_{username}_{repo_name}'
+    elif 'github.com' in url and 'ipynb' in url:
+        prefix = 'github_ipynb'
+        parts = url.split('/')
+        username = parts[3]
+        repo_name = parts[4]
+        ipynb_file_name = parts[-1].replace('.ipynb', '')
+        file_name = f'{prefix}_{username}_{repo_name}_{ipynb_file_name}_ipynb'
     elif 'arxiv.org' in url:
         prefix = 'arxiv'
         parts = url.split('/')
@@ -71,7 +78,7 @@ def get_file_path(url):
     os.makedirs(path, exist_ok=True)
 
     file_type = prefix
-    if not file_type in ('github', 'arxiv', 'youtube', 'huggingface'):
+    if not file_type in ('github', 'arxiv', 'youtube', 'huggingface', 'github_ipynb'):
         file_type = 'general'
     # Return the file type and file path
     return (file_type, f'{path}/{file_name}', str(int(time_now)), url)
@@ -121,7 +128,7 @@ async def on_message(message):
         return
 
     if message.content.startswith('!wget'):
-        url = message.content.split(' ', 1)[1] # get the URL from the message content after the command
+        url = message.content.split(' ', 1)[1].strip() # get the URL from the message content after the command
         post_flag = message.content.split(' ')[-1] # get the post flag from the message content after the command
         # Get the content for the URL
         try:

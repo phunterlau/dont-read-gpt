@@ -4,6 +4,7 @@ import requests
 import os
 import re
 from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound
+import json
 
 def get_html_content(url):
     headers = {
@@ -257,6 +258,28 @@ def get_huggingface_content(url):
     else:
         return "Hugging Face model page not found."
 
+# if the link is a github notebook link, we need to get the raw content
+def get_github_notebook_content(github_url):
+    github_url = github_url.strip()
+    raw_url = github_url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/')
+    response = requests.get(raw_url)
+    if response.status_code == 200:
+        return response.text
+    else:
+        return None
+
+# convert the notebook content to a list of cells and their types
+def parse_notebook(notebook_content):
+    notebook_data = json.loads(notebook_content)
+    parsed_content = []
+
+    for cell in notebook_data['cells']:
+        cell_type = cell['cell_type']
+        cell_content = ''.join(cell['source'])
+        parsed_content.append({'type': cell_type, 'content': cell_content})
+
+    return parsed_content
+
 def get_url_content(url):
     # Check if the URL includes a scheme, and add "https://" by default if not
     if not url.startswith('http://') and not url.startswith('https://'):
@@ -266,8 +289,14 @@ def get_url_content(url):
     if 'arxiv.org/abs/' in url or 'arxiv.org/pdf/' in url or 'browse.arxiv.org/html/' in url:
         return get_arxiv_content(url)
     # Check if the URL is a GitHub repository and get the README file content
-    elif 'github.com' in url:
+    elif 'github.com' in url and not url.endswith('.ipynb'):
         return get_github_content(url)
+    # Check if the URL is a GitHub notebook and get the content
+    elif 'github.com' in url and url.endswith('.ipynb'):
+        notebook_content = get_github_notebook_content(url)
+        notebook_cells = parse_notebook(notebook_content)
+        content = '\n\n'.join([f'**{cell["type"]}**\n{cell["content"]}' for cell in notebook_cells])
+        return content
     # Check if the URL is a YouTube video and get the transcript
     elif if_youtube(url):
         return get_youtube_transcript_content(url)

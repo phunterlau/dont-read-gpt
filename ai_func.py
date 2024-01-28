@@ -128,6 +128,18 @@ def generate_summary(text_snippet, summary_type='general'):
     '8. Accessibility: License information and model availability, if specified.\n'
     'Note: Exclude any aspects that are not explicitly mentioned on the model page.'
     )
+    ipython_notebook_prompt = (
+    'You are a data scientist. Please provide a concise summary of the following IPython notebook, limit 100 words. Include only the aspects that are available:\n'
+    '1. Main objectives or goals of the notebook.\n'
+    '2. Key data analysis or computational concepts demonstrated.\n'
+    '3. Significant findings or results derived from the notebook.\n'
+    '4. Code and methodologies used and their significance.\n'
+    '5. Any visualizations or graphical representations and their insights.\n'
+    '6. Conclusions or potential applications of the notebook\'s content.\n'
+    '7. Limitations or areas for further exploration, if mentioned.\n'
+    'Note: Focus only on the aspects explicitly included in the notebook.'
+    )
+
     #general_prompt = f'You are a scientific researcher. Please provide a concise concise summary of the following text, limit 100 words, addressing the following aspects if available:\n1. Main topic or subject\n2. Core arguments or points\n3. Significant findings, results, or insights\n4. Comparisons or contrasts with other ideas or studies\n5. Implications or potential applications'
     general_prompt = (
     'You are a scientific researcher. Please provide a concise summary of the following text, limited to 100 words. Include only the aspects that are available:\n'
@@ -143,6 +155,7 @@ def generate_summary(text_snippet, summary_type='general'):
         'github': github_repo_prompt,
         'youtube': youtube_prompt,
         'huggingface': huggingface_model_prompt,
+        'ipython': ipython_notebook_prompt,
         'general': general_prompt,
 
     }
