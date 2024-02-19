@@ -74,13 +74,22 @@ def get_arxiv_content_old_version(url):
 
     return content
 
+# arxiv HTML page may have a few patterns, so we need to try multiple URLs
 def fetch_arxiv_page(arxiv_id):
-    url = f"https://browse.arxiv.org/html/{arxiv_id}v1"  # Adjust version as needed
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.text
-    else:
-        return None
+    # Define a list of URL patterns to try
+    url_patterns = [
+        f"https://browse.arxiv.org/html/{arxiv_id}v{{version}}",
+        f"https://arxiv.org/html/{arxiv_id}v{{version}}"
+    ]
+    
+    # Try fetching from each URL pattern, iterating through versions if necessary
+    for version in range(1, 3):  # Assuming you want to check versions 1 and 2; adjust range as needed
+        for pattern in url_patterns:
+            url = pattern.format(version=version)
+            response = requests.get(url)
+            if response.status_code == 200:
+                return response.text
+    return None  # Return None if none of the URLs work
 
 def parse_html(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
@@ -127,8 +136,10 @@ def get_arxiv_content(url):
         arxiv_sections = parse_html(arxiv_html_content)
         content = '\n\n'.join([f'**{section_name}**\n{section_content}' for section_name, section_content in arxiv_sections.items()])
         return content
-    else:
-        return "Arxiv page not found."
+    else: # if the html page is not found, we downgrade the old version
+        #return "Arxiv page not found."
+        print("Arxiv page not found. Downgrading to old version.")
+        return get_arxiv_content_old_version(url)
 
 def get_github_content(url):
     if url.endswith('/'):
