@@ -181,19 +181,20 @@ def get_github_content(url):
 
     return content
 
-
+# updated youtube ID regex pattern 
 def extract_video_id(url):
     """
     Extracts the video ID from a YouTube URL.
     """
-    youtube_regex = (
-        r'(https?://)?(www\.)?'
-        '(youtube|youtu|youtube-nocookie)\.(com|be)/'
-        '(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
+    youtube_regex_patterns = [
+        r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})',
+        r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?.*v=([^&=%\?]{11}))'
+    ]
 
-    youtube_regex_match = re.match(youtube_regex, url)
-    if youtube_regex_match:
-        return youtube_regex_match.group(6)
+    for pattern in youtube_regex_patterns:
+        match = re.search(pattern, url)
+        if match:
+            return match.group(6)
     return None
 
 def get_youtube_transcript_content(url):
@@ -227,15 +228,18 @@ def get_youtube_transcript_content(url):
     except NoTranscriptFound:
         return "No transcript found for this video."
 
+# updated youtube URL pattern
 def if_youtube(url):
     youtube_regex = (
         r'(https?://)?(www\.)?'
-        '(youtube|youtu|youtube-nocookie)\.(com|be)/'
-        '(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
-    youtube_regex_match = re.match(youtube_regex, url)
+        '(youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/|youtube\.com/v/|youtube\.com/user/[^/]+#p/a/u/1/|youtube\.com/channel/[^/]+/videos|youtube\.com/playlist\?list=|youtube\.com/user/[^/]+#p/c/[^/]+/[^/]+/[^/]+|youtube\.com/user/[^/]+#p/u/[^/]+/[^/]+)'
+        '([^&=%\?]{11})')
+    youtube_regex_match = re.search(youtube_regex, url)
     if youtube_regex_match:
         return True
-
+    else:
+        return False
+    
 def fetch_huggingface_model_page(url):
     response = requests.get(url)
     if response.status_code == 200:
