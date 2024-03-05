@@ -96,31 +96,37 @@ def parse_html(html_content):
 
     sections = {}
 
+    # Function to clean text by removing non-tokenizable characters
+    def clean_text(text):
+        # Replace non-tokenizable characters with an empty string
+        cleaned_text = re.sub(r'[^\x00-\x7F]+', '', text)
+        return cleaned_text
+    
     # Extract title from <h1>
     title = soup.find('h1')
     if title:
-        sections["Title"] = title.get_text(strip=True)
+        sections["Title"] = clean_text(title.get_text(strip=True))
 
     # Extract abstract
     abstract_div = soup.find('div', class_='ltx_abstract')
     if abstract_div:
         abstract = abstract_div.find('p')
         if abstract:
-            sections["Abstract"] = abstract.get_text(strip=True)
+            sections["Abstract"] = clean_text(abstract.get_text(strip=True))
 
     # Extract sections from <h2>
     for heading in soup.find_all('h2', class_='ltx_title ltx_title_section'):
         # Removing any <span> elements (like section numbers) from the heading
         for span in heading.find_all('span', class_='ltx_tag ltx_tag_section'):
             span.decompose()
-        section_name = heading.get_text(strip=True)
+        section_name = clean_text(heading.get_text(strip=True))
 
         # Extracting content under the section
         content = []
         for sibling in heading.find_next_siblings():
             if sibling.name == 'h2':
                 break
-            content.append(sibling.get_text(strip=True))
+            content.append(clean_text(sibling.get_text(strip=True)))
         sections[section_name] = ' '.join(content)
 
     return sections

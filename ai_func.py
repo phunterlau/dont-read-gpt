@@ -32,10 +32,10 @@ def gen_gpt_completion(prompt, temp=0.0, engine="text-davinci-003", max_tokens=1
     return response
 
 # Use gpt-3.5-turbo-16k-0613 for longer text and chat completion
-@backoff.on_exception(
-    partial(backoff.expo, max_value=50),
-    (openai.RateLimitError, openai.APIError, openai.APIConnectionError),
-)
+#@backoff.on_exception(
+#    partial(backoff.expo, max_value=2),
+#    (openai.RateLimitError, openai.APIError, openai.APIConnectionError),
+#)
 def gen_gpt_chat_completion(system_prompt, user_prompt, temp=0.0, engine="gpt-3.5-turbo-16k-0613", max_tokens=1024,
                             top_p=1, frequency_penalty=0, presence_penalty=0,):
     
@@ -172,12 +172,19 @@ def generate_summary(text_snippet, summary_type='general'):
     #    temperature=0.5,
     #)
     #response = gen_gpt_completion(prompt, max_tokens=max_output_tokens)
-    response = gen_gpt_chat_completion(system_prompt, user_prompt, max_tokens=max_output_tokens)
+    try:
+        response = gen_gpt_chat_completion(system_prompt, user_prompt, max_tokens=max_output_tokens)
 
-    #summary = response.choices[0].text.strip()
-    summary = response.choices[-1].message.content.strip()
-
-    return summary
+        #summary = response.choices[0].text.strip()
+        summary = response.choices[-1].message.content.strip()
+        return summary
+    except openai.BadRequestError as e:
+        # Check if the error is due to exceeding maximum context length
+        if "maximum context length" in str(e):
+            error_message = "The input is too long. Please reduce the length and try again."
+        else:
+            error_message = "An error occurred: " + str(e)
+        return error_message
 
 def generate_embedding(text_snippet):
     #embedding = openai.Embedding.create(
@@ -204,11 +211,19 @@ def extract_keywords_from_summary(summary):
     system_prompt = prompt
     user_prompt = summary
     #response = gen_gpt_completion(prompt, max_tokens=100)
-    response = gen_gpt_chat_completion(system_prompt, user_prompt, max_tokens=256)
+    try:
+        response = gen_gpt_chat_completion(system_prompt, user_prompt, max_tokens=256)
 
-    #keywords = response.choices[0].text.strip().split(', ')
-    keywords = response.choices[-1].message.content.strip().split(', ')
-    return keywords
+        #keywords = response.choices[0].text.strip().split(', ')
+        keywords = response.choices[-1].message.content.strip().split(', ')
+        return keywords
+    except openai.BadRequestError as e:
+        # Check if the error is due to exceeding maximum context length
+        if "maximum context length" in str(e):
+            error_message = "The input is too long. Please reduce the length and try again."
+        else:
+            error_message = "An error occurred: " + str(e)
+        return error_message
 
 def summary_to_obsidian_markdown(summary, keywords):
     not_found_keywords = []
