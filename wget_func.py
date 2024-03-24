@@ -91,6 +91,49 @@ def fetch_arxiv_page(arxiv_id):
                 return response.text
     return None  # Return None if none of the URLs work
 
+def remove_latex_equations(text):
+    # Pattern to match common LaTeX equation delimiters and commands
+    # Adjust the pattern as needed to cover more cases
+    pattern = r'\\(?:begin\{[a-z]*\}|end\{[a-z]*\}|[a-zA-Z]+\{.*?\}|[a-zA-Z]+)'
+    clean_text = re.sub(pattern, '', text)
+    
+    # Additional cleanup for orphaned markers or commands
+    clean_text = re.sub(r'\\[a-zA-Z]+', '', clean_text)
+    clean_text = re.sub(r'\{|\}', '', clean_text)
+    
+    return clean_text
+
+def remove_complex_latex(text):
+    # Attempt to catch complex LaTeX-like expressions by looking for extended patterns
+    # This pattern is an attempt to match more complex mathematical expressions
+    # Adjust and expand upon these patterns based on observed structures in your text
+    patterns = [
+        r'\([^\)]*\)',  # Attempt to catch expressions enclosed in parentheses
+        r'\[[^\]]*\]',  # Attempt to catch expressions enclosed in brackets
+        r'\\[a-zA-Z]+\[[^\]]*\]',  # Catch LaTeX commands that might use brackets
+        r'\\[a-zA-Z]+',  # Catch standalone LaTeX commands
+        r'\{[^\}]*\}',  # Attempt to catch expressions enclosed in curly braces
+        r'[a-zA-Z]\[[^\]]*\]',  # Catch expressions like X[...]
+        r'\^[^\s]+',  # Catch superscript expressions
+        r'_\{[^\}]*\}',  # Catch subscript expressions
+        r'bold_[a-zA-Z]',  # Specific patterns observed in your example
+        r'italic_[a-zA-Z]',
+        r'fraktur_[a-zA-Z]',
+        r'over\^[^\s]+',  # Catch over^ expressions
+        r'start_[A-Z]+',  # Catch start_ expressions
+        r'end_[A-Z]+'  # Catch end_ expressions
+    ]
+    
+    clean_text = text
+    for pattern in patterns:
+        clean_text = re.sub(pattern, '', clean_text)
+    
+    # Additional cleanup for leftover markers or nonsensical sequences
+    clean_text = re.sub(r'[\{\}\[\]\(\)]', '', clean_text)  # Remove leftover braces, brackets, parentheses
+    clean_text = re.sub(r'\s+', ' ', clean_text).strip()  # Remove extra spaces
+    
+    return clean_text
+
 def parse_html(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
 
@@ -100,6 +143,10 @@ def parse_html(html_content):
     def clean_text(text):
         # Replace non-tokenizable characters with an empty string
         cleaned_text = re.sub(r'[^\x00-\x7F]+', '', text)
+        # Remove LaTeX equations
+        cleaned_text = remove_latex_equations(cleaned_text)
+        # Remove complex LaTeX-like expressions
+        cleaned_text = remove_complex_latex(cleaned_text)
         return cleaned_text
     
     # Extract title from <h1>
