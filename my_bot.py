@@ -127,35 +127,38 @@ async def on_message(message):
     if message.author == client.user:
         return
 
+    url = 'www.google.com'
     if message.content.startswith('!wget'):
         url = message.content.split(' ', 1)[1].strip() # get the URL from the message content after the command
-        post_flag = message.content.split(' ')[-1] # get the post flag from the message content after the command
-        # Get the content for the URL
-        try:
-            content = get_url_content(url)
-            # Save the content to a local file
-            file_type, file_path, time_now, complete_url = get_file_path(url)
-            #with open(file_path, 'w') as file:
-            #    file.write(content)
-            summary = generate_summary(content, summary_type=file_type)
-            keywords = extract_keywords_from_summary(summary)
-            embedding = generate_embedding(content)
-            obsidian_markdown = summary_to_obsidian_markdown(summary, keywords)
-            save_content(file_type=file_type, 
-                         file_path=file_path, 
-                         timestamp=time_now,
-                         content=content, 
-                         url=complete_url, 
-                         summary=summary, 
-                         keywords=keywords, 
-                         embeddings=embedding,
-                         obsidian_markdown=obsidian_markdown)
-            await message.channel.send(f'Saved {complete_url}\n\n{summary}\n\nKeywords: {keywords}'[:2000])
-            if not post_flag == 'nopost':
-                post_mastodon_toot(complete_url, summary, keywords)
-                await message.channel.send(f'Posted to Mastodon')
-        except socket.gaierror as e:
-            print(f'Error downloading URL "{url}": {str(e)}')
+    else:
+        url = message.content.split(' ',1)[0].strip() # ignore the command and get the URL from the message content
+    post_flag = message.content.split(' ')[-1] # get the post flag from the message content after the command
+    # Get the content for the URL
+    try:
+        content = get_url_content(url)
+        # Save the content to a local file
+        file_type, file_path, time_now, complete_url = get_file_path(url)
+        #with open(file_path, 'w') as file:
+        #    file.write(content)
+        summary = generate_summary(content, summary_type=file_type)
+        keywords = extract_keywords_from_summary(summary)
+        embedding = generate_embedding(content)
+        obsidian_markdown = summary_to_obsidian_markdown(summary, keywords)
+        save_content(file_type=file_type, 
+                        file_path=file_path, 
+                        timestamp=time_now,
+                        content=content, 
+                        url=complete_url, 
+                        summary=summary, 
+                        keywords=keywords, 
+                        embeddings=embedding,
+                        obsidian_markdown=obsidian_markdown)
+        await message.channel.send(f'Saved {complete_url}\n\n{summary}\n\nKeywords: {keywords}'[:2000])
+        if not post_flag == 'nopost':
+            post_mastodon_toot(complete_url, summary, keywords)
+            await message.channel.send(f'Posted to Mastodon')
+    except socket.gaierror as e:
+        print(f'Error downloading URL "{url}": {str(e)}')
 
     # tail function to load the latest content
     if message.content.startswith('!tail'):
