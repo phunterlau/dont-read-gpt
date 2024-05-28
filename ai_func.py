@@ -31,16 +31,16 @@ def gen_gpt_completion(prompt, temp=0.0, engine="text-davinci-003", max_tokens=1
     )
     return response
 
-# Use gpt-3.5-turbo-16k-0613 for longer text and chat completion
+# Use gpt-40o for longer text and chat completion
 #@backoff.on_exception(
 #    partial(backoff.expo, max_value=2),
 #    (openai.RateLimitError, openai.APIError, openai.APIConnectionError),
 #)
-def gen_gpt_chat_completion(system_prompt, user_prompt, temp=0.0, engine="gpt-3.5-turbo-16k-0613", max_tokens=1024,
+def gen_gpt_chat_completion(system_prompt, user_prompt, temp=0.0, engine="gpt-4o", max_tokens=1024,
                             top_p=1, frequency_penalty=0, presence_penalty=0,):
     
     response = client.chat.completions.create(
-                    model="gpt-3.5-turbo-16k",
+                    model="gpt-4o",
                     messages=[{"role":"system", "content":system_prompt},
                             {"role":"user", "content":user_prompt}],
                     temperature=1,
@@ -52,8 +52,8 @@ def gen_gpt_chat_completion(system_prompt, user_prompt, temp=0.0, engine="gpt-3.
 
 def generate_summary(text_snippet, summary_type='general'):
 
-    max_input_words = 10000
-    max_input_words_chinese = 5000
+    max_input_words = 100000
+    max_input_words_chinese = 50000
     max_output_tokens = 1024
     total_tokens = 4097  # Assuming an average of 2 tokens per word
 
