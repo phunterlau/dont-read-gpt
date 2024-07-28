@@ -23,7 +23,7 @@ def get_html_content(url):
 def download_arxiv_pdf(arxiv_link, local_directory):
     if arxiv_link.startswith("https://arxiv.org/abs/"):
         pdf_link = arxiv_link.replace("https://arxiv.org/abs/", "https://arxiv.org/pdf/") + ".pdf"
-    elif arxiv_link.startswith("https://arxiv.org/pdf/") and arxiv_link.endswith(".pdf"):
+    elif arxiv_link.startswith("https://arxiv.org/pdf/"):
         pdf_link = arxiv_link
     else:
         raise ValueError("Invalid arXiv link")
@@ -44,7 +44,9 @@ def extract_arxiv_id(url, include_version=False):
     patterns = [
         r'https://browse\.arxiv\.org/html/(\d{4}\.\d{4,5}v?\d*)',  # HTML version
         r'https://arxiv\.org/abs/(\d{4}\.\d{4,5})',                # Abstract page
-        r'https://arxiv\.org/pdf/(\d{4}\.\d{4,5}v?\d*)\.pdf'       # PDF version
+        # pdf page may or may not have .pdf extension
+        r'https://arxiv\.org/pdf/(\d{4}\.\d{4,5}v?\d*)',           # PDF version new
+        r'https://arxiv\.org/pdf/(\d{4}\.\d{4,5}v?\d*)\.pdf'       # PDF version old
     ]
 
     for pattern in patterns:
