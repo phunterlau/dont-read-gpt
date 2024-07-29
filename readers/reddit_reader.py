@@ -3,6 +3,8 @@ import os
 import requests
 
 def resolve_reddit_url(short_url):
+    # FIXME: This is a temporary solution to resolve the short URL
+    # Reddit may block server IP for simple redictions while local laptop was OK
     response = requests.get(short_url, allow_redirects=True)
     return response.url
 
@@ -49,7 +51,7 @@ def fetch_reddit_thread_content(thread_url, client_id, client_secret, user_agent
     }
 
 def get_reddit_content(thread_url):
-    # go get them here https://developers.reddit.com/
+    # go get them here https://www.reddit.com/prefs/apps
     client_id = os.getenv('REDDIT_APP_ID')
     client_secret = os.getenv('REDDIT_APP_SECRET')
     user_agent = 'dont read GPT client'
@@ -60,6 +62,7 @@ def get_reddit_content(thread_url):
 
 def main():
     thread_url = 'https://www.reddit.com/r/math/s/VPSP8rplcl'  # Example shortened URL
+    #thread_url = 'https://www.reddit.com/r/math/comments/19fg9rx/some_perspective_on_alphageometry/'
     test_content = get_reddit_content(thread_url)
     print(test_content)
 
