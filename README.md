@@ -48,8 +48,8 @@ export OPENAI_KEY="your_openai_api_key"
 ```
 export DISCORD_BOT_TOKEN="your_discord_bot_token"
 # get Reddit tokens as https://www.reddit.com/prefs/apps
-export REDDIT_APP_ID=ohB-FossX6IdBVBiQdGr7g
-export REDDIT_APP_SECRET=WiP1CucU3_gLrvIUJKye1mK1x_c0mw
+export REDDIT_APP_ID="your reddit app ID"
+export REDDIT_APP_SECRET="your reddit secret"
 ```
 
 6. Run the bot:
