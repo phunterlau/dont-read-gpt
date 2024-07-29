@@ -10,7 +10,7 @@ from ai_func import summary_to_obsidian_markdown
 from ai_func import generate_embedding
 
 from wget_func import get_url_content
-from wget_func import download_arxiv_pdf
+from readers.arxiv_reader import download_arxiv_pdf
 
 from mastodon_func import post_masotodon
 
