@@ -5,6 +5,7 @@ import os
 import re
 from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound
 import json
+from readers.reddit_reader import get_reddit_content
 
 def get_html_content(url):
     headers = {
@@ -373,11 +374,15 @@ def get_url_content(url):
     # Check if the URL is a Hugging Face model page and get the content
     elif 'huggingface.co' in url:
         return get_huggingface_content(url)
+    # Check if the URL is a Reddit thread and get the content
+    elif 'reddit.com' in url:
+        return get_reddit_content(url)
     else:
         # Get the content for the URL as text-only HTML response
         return get_html_content(url)
 
 if __name__ == '__main__':
     # Test the function
-    url = "https://www.youtube.com/watch?v=GKr5URJvNDQ&ab_channel=PromptEngineer"
-    print(get_youtube_transcript_content(url))
+    url = " https://www.reddit.com/r/math/s/VPSP8rplcl/"
+    #print(get_youtube_transcript_content(url))
+    print(get_url_content(url))
