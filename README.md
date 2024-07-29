@@ -1,12 +1,26 @@
 # Dont-Read-GPT: A Discord Bot for Summarizing Web Content
 
-Dont-Read-GPT is a Discord bot designed to help you save time by summarizing web content from URLs, ArXiv papers, and GitHub repositories. Instead of saving content that you may never read, let the bot generate a concise summary so you can quickly grasp the key points and insights.
+Dont-Read-GPT is my Discord bot designed to help me save time by summarizing web content from many knowledge sources like Arxiv. Instead of saving content that I may never read, let the bot generate a concise summary so I can quickly grasp the key points and insights. It currently supports:
+
+* Arxiv
+* Huggingface model
+* Github
+* Youtube
+* Reddit
+* WeChat Article
+* other blogs or article page
+
+On the roadmap: (contribution welcomed!)
+* PDF link
+* Medium member blog
+* Hackernews
+* X/Twitter thread
 
 ## Features
 
-- Supports summarization of web content from URLs, ArXiv papers, and GitHub repositories
-- Uses OpenAI GPT model for generating high-quality summaries
-- Easy integration with Discord via the "!wget" command
+- Supports summarization of web content from variety of knowledge sources
+- Uses OpenAI GPT model for high-quality summaries tailored for each source
+- Easy integration with Discord, just send a link and AI does everything else.
 
 ## Installation
 
@@ -30,9 +44,12 @@ pip install -r requirements.txt
 export OPENAI_KEY="your_openai_api_key"
 ```
 
-5. Set up your Discord bot token:
+5. Set up your Discord bot token and other app tokens:
 ```
 export DISCORD_BOT_TOKEN="your_discord_bot_token"
+# get Reddit tokens as https://www.reddit.com/prefs/apps
+export REDDIT_APP_ID=ohB-FossX6IdBVBiQdGr7g
+export REDDIT_APP_SECRET=WiP1CucU3_gLrvIUJKye1mK1x_c0mw
 ```
 
 6. Run the bot:
