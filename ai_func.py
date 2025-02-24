@@ -76,14 +76,13 @@ def generate_summary(text_snippet, summary_type='general'):
     #github_repo_prompt = f'You are a scientific researcher. Please provide a concise summary of the following GitHub repository README.md, limit 100 words, addressing the following aspects if available:\n1. Purpose of the project\n2. Key features and benefits\n3. Technology stack or programming languages used\n4. Dependencies or prerequisites\n5. Installation, setup, and usage instructions\n6. Maintenance and main contributors\n7. Known limitations or issues\n8. Project license and usage restrictions\n9. Contribution guidelines\n10. Additional documentation or resources'
     #youtube_prompt = f'You are a scientific researcher. Expert in technical and research content analysis: Summarize the video transcript (150 words max). Cover if available: 1. Main topic. 2. Key concepts/technologies. 3. Primary arguments/points. 4. Significant findings/conclusions. 5. Methodologies/approaches. 6. Examples/case studies. 7. Relation to current trends/knowledge. 8. Counterpoints/alternatives. 9. Future implications/applications. 10. Key quotes/statements. 11. Limitations/weaknesses. 12. Additional resources. 13. Key takeaways.'
     arxiv_paper_prompt = (
-    'You are a scientific researcher. Please provide a concise summary of the following ArXiv paper\'s title and abstract, limit 100 words. Include only the aspects that are available:\n'
-    '1. Main problem or research question.\n'
-    '2. Key methodology or approach.\n'
-    '3. Main results or findings.\n'
-    '4. Comparison to previous work or state of the art.\n'
-    '5. Potential applications or implications.\n'
-    '6. Limitations or future work.\n'
-    'Note: Exclude any aspects that are not explicitly mentioned in the title or abstract.'
+    'You are a scientific researcher. Provide a focused 100-word summary of this ArXiv paper that emphasizes:\n'
+    '1. Key Innovation: What is novel or groundbreaking about this work?\n'
+    '2. Core Contribution: What specific technical/methodological advancement does it make?\n'
+    '3. Impact: How does this advance the field or solve an important problem?\n'
+    '4. Significance: Why does this matter to the research community or broader applications?\n'
+    'Format: Start with the innovation, then explain the contribution, followed by impact and significance.\n'
+    'Note: Be specific about technical details while maintaining clarity. Prioritize describing what makes this work unique.'
     )
     github_repo_prompt = (
     'You are a scientific researcher. Please provide a concise summary of the following GitHub repository README.md, limit 100 words. Include only the aspects that are available:\n'
@@ -100,22 +99,15 @@ def generate_summary(text_snippet, summary_type='general'):
     'Note: Omit any aspects not mentioned in the README.md.'
     )
     youtube_prompt = (
-    'You are a scientific researcher and expert in technical and research content analysis. Summarize the video transcript within 150 words. Include only the aspects that are available:\n'
-    '1. Main topic.\n'
-    '2. Key concepts/technologies.\n'
-    '3. Primary arguments/points.\n'
-    '4. Significant findings/conclusions.\n'
-    '5. Methodologies/approaches.\n'
-    '6. Examples/case studies.\n'
-    '7. Relation to current trends/knowledge.\n'
-    '8. Counterpoints/alternatives.\n'
-    '9. Future implications/applications.\n'
-    '10. Key quotes/statements.\n'
-    '11. Limitations/weaknesses.\n'
-    '12. Additional resources.\n'
-    '13. Key takeaways.\n'
-    'Note: Do not include any aspects that are not covered in the video transcript.'
-    )   
+    'You are a technical content analyst. Provide a focused 100-word summary of this video transcript that emphasizes:\n'
+    '1. Core Message: What is the main insight or key learning?\n'
+    '2. Technical Details: What specific methods, tools, or technologies are discussed?\n'
+    '3. Practical Application: How can viewers apply this information?\n'
+    '4. Expert Insights: What unique perspectives or expert knowledge is shared?\n'
+    'Format: Begin with the core message, then explain technical aspects, followed by practical applications and expert insights.\n'
+    'Note: Prioritize actionable insights and technical depth while maintaining clarity. Focus on what makes this content valuable to practitioners.'
+    )
+
     huggingface_model_prompt = (
     'You are an AI expert. Please provide a concise summary of the Hugging Face model page, limit 100 words. Include only the aspects that are available on the page:\n'
     '1. Model Overview: A brief description and primary function of the model.\n'
@@ -139,8 +131,6 @@ def generate_summary(text_snippet, summary_type='general'):
     '7. Limitations or areas for further exploration, if mentioned.\n'
     'Note: Focus only on the aspects explicitly included in the notebook.'
     )
-
-    #general_prompt = f'You are a scientific researcher. Please provide a concise concise summary of the following text, limit 100 words, addressing the following aspects if available:\n1. Main topic or subject\n2. Core arguments or points\n3. Significant findings, results, or insights\n4. Comparisons or contrasts with other ideas or studies\n5. Implications or potential applications'
     general_prompt = (
     'You are a scientific researcher. Please provide a concise summary of the following text, limited to 100 words. Include only the aspects that are available:\n'
     '1. Main topic or subject.\n'
@@ -157,29 +147,16 @@ def generate_summary(text_snippet, summary_type='general'):
         'huggingface': huggingface_model_prompt,
         'ipython': ipython_notebook_prompt,
         'general': general_prompt,
-
     }
 
     system_prompt = prompts.get(summary_type, prompts['general'])
     user_prompt = text_snippet
 
-    #response = openai.Completion.create(
-    #    engine='text-davinci-003',
-    #    prompt=prompt,
-    #    max_tokens=max_output_tokens,
-    #    n=1,
-    #    stop=None,
-    #    temperature=0.5,
-    #)
-    #response = gen_gpt_completion(prompt, max_tokens=max_output_tokens)
     try:
         response = gen_gpt_chat_completion(system_prompt, user_prompt, max_tokens=max_output_tokens)
-
-        #summary = response.choices[0].text.strip()
         summary = response.choices[-1].message.content.strip()
         return summary
     except openai.BadRequestError as e:
-        # Check if the error is due to exceeding maximum context length
         if "maximum context length" in str(e):
             error_message = "The input is too long. Please reduce the length and try again."
         else:
@@ -225,6 +202,31 @@ def extract_keywords_from_summary(summary):
             error_message = "An error occurred: " + str(e)
         return error_message
 
+def download_youtube_transcript(video_id):
+    """
+    Downloads a YouTube video transcript using youtube_transcript_api.
+    Returns the transcript text or error message.
+    
+    Args:
+        video_id (str): YouTube video ID (e.g., 'dQw4w9WgXcQ' from youtube.com/watch?v=dQw4w9WgXcQ)
+    
+    Returns:
+        str: Transcript text or error message
+    """
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+        
+        # Get transcript
+        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+        
+        # Combine transcript segments into full text
+        transcript_text = ' '.join([item['text'] for item in transcript_list])
+        
+        return transcript_text
+        
+    except Exception as e:
+        return f"Error downloading transcript: {str(e)}"
+
 def summary_to_obsidian_markdown(summary, keywords):
     not_found_keywords = []
 
@@ -242,6 +244,9 @@ def summary_to_obsidian_markdown(summary, keywords):
     
     return summary
 
+def test_obsidian_markdown():
+    summary = "This is a summary of a paper about the use of AI in the field of medicine. The paper discusses the use of AI to diagnose diseases and predict the effectiveness of treatments. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes."
+    keywords = extract_keywords_from_summary(summary)
 def test_obsidian_markdown():
     summary = "This is a summary of a paper about the use of AI in the field of medicine. The paper discusses the use of AI to diagnose diseases and predict the effectiveness of treatments. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes."
     keywords = extract_keywords_from_summary(summary)

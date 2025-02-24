@@ -153,10 +153,44 @@ async def on_message(message):
                         keywords=keywords, 
                         embeddings=embedding,
                         obsidian_markdown=obsidian_markdown)
-        await message.channel.send(f'Saved {complete_url}\n\n{summary}\n\nKeywords: {keywords}'[:2000])
-        if not post_flag == 'nopost':
-            post_mastodon_toot(complete_url, summary, keywords)
-            await message.channel.send(f'Posted to Mastodon')
+        
+        # Check if content has arxiv or github links (for WeChat articles)
+        arxiv_links = []
+        github_links = []
+        if isinstance(content, dict):
+            print(f"[DEBUG] Content is a dictionary with keys: {list(content.keys())}")
+            if 'arxiv_links' in content:
+                arxiv_links = content['arxiv_links']
+                print(f"[DEBUG] Found {len(arxiv_links)} arxiv links in content")
+            if 'github_links' in content:
+                github_links = content['github_links']
+                print(f"[DEBUG] Found {len(github_links)} github links in content")
+            
+        # Build the message
+        message_parts = [
+            f'Saved {complete_url}\n',
+            f'{summary}\n',
+            f'Keywords: {keywords}'
+        ]
+        
+        # Format links in a more readable way
+        if arxiv_links:
+            print("[DEBUG] Adding arxiv links to message")
+            message_parts.append('\n📄 ArXiv Papers:')
+            for i, link in enumerate(arxiv_links, 1):
+                message_parts.append(f'{i}. {link}')
+            
+        if github_links:
+            print("[DEBUG] Adding github links to message")
+            message_parts.append('\n💻 GitHub Repositories:')
+            for i, link in enumerate(github_links, 1):
+                message_parts.append(f'{i}. {link}')
+            
+        # Send message with proper spacing
+        await message.channel.send('\n'.join(message_parts)[:2000])
+        #if not post_flag == 'nopost':
+        #    post_mastodon_toot(complete_url, summary, keywords)
+        #    await message.channel.send(f'Posted to Mastodon')
     except socket.gaierror as e:
         print(f'Error downloading URL "{url}": {str(e)}')
 
