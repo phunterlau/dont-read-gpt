@@ -1,5 +1,6 @@
 from ai_func import generate_summary, generate_embedding
 from readers.arxiv_reader import download_arxiv_pdf
+from readers.pdf_reader import download_pdf
 import json
 import os
 
@@ -44,6 +45,11 @@ def process_content(file_type, file_path, timestamp, content, url, focus=None, u
     if file_type == 'arxiv':
         pdf_file_name = file_path.replace('.json', '.pdf')
         download_arxiv_pdf(url, os.path.dirname(pdf_file_name))
+    
+    # Special handling for direct PDF downloads
+    elif file_type == 'pdf':
+        pdf_file_name = file_path.replace('.json', '.pdf')
+        download_pdf(url, os.path.dirname(pdf_file_name))
     
     # Append to the legacy index CSV
     with open('saved_text/index.csv', 'a') as index_file:

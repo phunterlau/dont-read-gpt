@@ -14,19 +14,29 @@ from utils.embed_builder import create_summary_embed, create_error_embed, create
 async def handle_wget(message, indexer: Indexer, db_manager: DatabaseManager):
     """Handle !wget command or direct URL - retrieve and process content into both systems"""
     
-    # Extract URL and potential focus from the message
-    parts = message.content.split(' ', 2)
+    # Extract URL, potential focus, and force flag from the message
+    parts = message.content.split(' ')
     command = parts[0]
     url = ""
     focus = None
+    force_refresh = False
     use_arxiv_prompt = False
 
     if command == '!wget':
-        if len(parts) > 1:
-            url = parts[1].strip()
-            if len(parts) > 2:
-                focus = parts[2].strip()
+        # Parse wget command arguments
+        args = parts[1:] if len(parts) > 1 else []
+        
+        # Check for --force flag (only supported for !wget command)
+        if '--force' in args:
+            force_refresh = True
+            args.remove('--force')
+        
+        if args:
+            url = args[0].strip()
+            if len(args) > 1:
+                focus = ' '.join(args[1:]).strip()
     else:
+        # Direct URL posting - no --force flag support
         url = command.strip()
         if len(parts) > 1:
             focus = ' '.join(parts[1:]).strip()
@@ -51,7 +61,13 @@ async def handle_wget(message, indexer: Indexer, db_manager: DatabaseManager):
     start_time = time.time()
     
     # Send processing message using an embed
-    processing_embed = create_processing_embed(url)
+    if force_refresh:
+        processing_embed = create_processing_embed(url)
+        processing_embed.title = "🔄 Force Refreshing URL..."
+        processing_embed.description = f"Force refreshing content from:\n{url}\n\n*Note: This will bypass cache and reprocess the document.*"
+    else:
+        processing_embed = create_processing_embed(url)
+    
     processing_msg = await message.channel.send(embed=processing_embed)
     
     try:
@@ -60,8 +76,11 @@ async def handle_wget(message, indexer: Indexer, db_manager: DatabaseManager):
         
         file_path, time_now, complete_url = generate_file_path(url, file_type)
         
-        # Check if document already exists
-        existing_doc = db_manager.check_existing_document(complete_url)
+        # Check if document already exists (unless force refresh is requested)
+        existing_doc = None
+        if not force_refresh:
+            existing_doc = db_manager.check_existing_document(complete_url)
+        
         user_id = str(message.author.id)  # Get Discord user ID
         
         # Get user memory for personalization (only for arXiv papers)
@@ -71,7 +90,7 @@ async def handle_wget(message, indexer: Indexer, db_manager: DatabaseManager):
             if user_memory_data:
                 user_memory = user_memory_data.get('current_memory_profile')
         
-        if existing_doc:
+        if existing_doc and not force_refresh:
             # Check if document is outdated (older than 7 days)
             if db_manager.is_document_outdated(existing_doc['timestamp'], days_threshold=7):
                 # Document is old, update it with new content
@@ -133,7 +152,6 @@ async def handle_wget(message, indexer: Indexer, db_manager: DatabaseManager):
                     # Add personalized section for cached arXiv documents
                     try:
                         from ai_func import generate_personalized_section
-                        import json
                         
                         # Generate personalized section
                         content_for_personalization = existing_doc.get('content_preview', '') or summary_json
@@ -159,6 +177,59 @@ async def handle_wget(message, indexer: Indexer, db_manager: DatabaseManager):
                 existing_embed = create_existing_document_embed(doc_with_summary, existing_doc['id'])
                 await processing_msg.edit(embed=existing_embed)
                 return
+        
+        # Document doesn't exist OR force refresh is requested - create new one or update existing
+        if force_refresh and existing_doc:
+            # Force refresh: update existing document
+            summary_json, keywords = process_content(
+                file_type=file_type,
+                file_path=file_path,
+                timestamp=time_now,
+                content=content,
+                url=complete_url,
+                focus=focus,
+                use_arxiv_prompt=use_arxiv_prompt,
+                user_memory=user_memory
+            )
+            
+            # Add to legacy indexer
+            indexer.index_file(file_path)
+            
+            # Generate new embedding
+            content_text = content
+            if isinstance(content, dict):
+                content_text = content.get('content', str(content))
+            
+            from ai_func import generate_embedding
+            embedding = generate_embedding(content_text) if content_text else []
+            
+            content_preview = content_text[:500] if isinstance(content_text, str) else str(content_text)[:500]
+            
+            # Update the existing document
+            success = db_manager.update_document(
+                document_id=existing_doc['id'],
+                summary=summary_json,
+                keywords=keywords,
+                embedding=embedding,
+                content_preview=content_preview,
+                user_id=user_id
+            )
+            
+            if success:
+                processing_time = time.time() - start_time
+                summary_embed = create_summary_embed(
+                    summary_json=summary_json,
+                    url=complete_url,
+                    doc_type=file_type,
+                    db_id=existing_doc['id'],
+                    processing_time=processing_time,
+                    is_updated=True
+                )
+                await processing_msg.edit(embed=summary_embed)
+            else:
+                error_embed = create_error_embed("Database Error", "Failed to force update existing document.", "!wget", url)
+                await processing_msg.edit(embed=error_embed)
+            return
         
         # Document doesn't exist, create new one
         summary_json, keywords = process_content(

@@ -5,6 +5,7 @@ from readers.base_reader import BaseReader
 from readers.arxiv_reader import ArxivReader
 from readers.github_reader import GithubReader, GithubIpynbReader
 from readers.huggingface_reader import HuggingfaceReader
+from readers.pdf_reader import PDFReader, is_pdf_url
 # from readers.youtube_reader import YoutubeReader  # Temporarily disabled
 from readers.webpage_reader import WebpageReader
 
@@ -25,6 +26,8 @@ def get_url_type_and_reader(url) -> tuple[str, BaseReader]:
         return 'github_ipynb', GithubIpynbReader()
     elif 'arxiv.org' in url:
         return 'arxiv', ArxivReader()
+    elif is_pdf_url(url):  # Check for PDF URLs before general webpage
+        return 'pdf', PDFReader()
     elif 'mp.weixin.qq.com' in url:
         return 'wechat', WebpageReader() # Assuming wechat uses general webpage reader
     # elif re.match(youtube_regex, url):
@@ -66,6 +69,18 @@ def generate_file_path(url, file_type):
         huggingface_regex = (r'https?:\/\/huggingface\.co\/([^\/]+\/[^\/]+)')
         huggingface_id = re.match(huggingface_regex, url).group(1).replace('/', '-')
         file_name = f'huggingface_{huggingface_id}'
+    elif file_type == 'pdf':
+        # Extract filename from URL for PDFs
+        pdf_filename = url.split('/')[-1]
+        if '?' in pdf_filename:
+            pdf_filename = pdf_filename.split('?')[0]  # Remove query parameters
+        if not pdf_filename.endswith('.pdf'):
+            pdf_filename += '.pdf'
+        # Remove .pdf extension for the JSON filename
+        base_name = pdf_filename.replace('.pdf', '')
+        # Clean the filename
+        base_name = re.sub('[^0-9a-zA-Z\-_]', '_', base_name)
+        file_name = f'pdf_{base_name}'
     else:
         file_name = re.sub('[^0-9a-zA-Z]+', '', url)
         if len(file_name) > 100:

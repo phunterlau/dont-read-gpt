@@ -26,5 +26,6 @@ tqdm==4.65.0
 uritemplate==4.1.1
 urllib3 @ file:///home/conda/feedstock_root/build_artifacts/urllib3_1678635778344/work
 yarl==1.9.2
-arxiv
+arxiv==2.2.0
 praw
+pdfplumber==0.10.3
