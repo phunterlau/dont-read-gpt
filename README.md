@@ -49,6 +49,10 @@ https://arxiv.org/abs/2304.14979
 # Or use explicit command
 !wget https://arxiv.org/abs/2304.14979
 
+# Search arXiv for papers and auto-process the top result
+!find transformer architectures
+!find machine learning optimization
+
 # Set your research interests for personalized arXiv summaries
 !mem I'm interested in transformer architectures and attention mechanisms
 
@@ -69,6 +73,7 @@ https://arxiv.org/abs/2304.14979
 - `!grep <query>` - Search all content and summaries (case-insensitive)
 - `!egrep <keyword>` - Search by keyword (case-insensitive)
 - `!related <id>` - Find documents related to a specific document
+- `!find <keywords>` - Search arXiv for papers matching keywords, auto-process the top result
 
 ### 📥 Content Management
 - `!wget <url>` - Process a URL explicitly
@@ -107,6 +112,7 @@ url_processor.py         # URL routing and reader selection
 commands/
 ├── mem_handler.py           # Personalized memory system
 ├── wget_handler.py          # URL processing
+├── find_handler.py          # arXiv search and processing
 ├── search_handler.py        # Text search (!grep)
 ├── keyword_search_handler.py # Keyword search (!egrep)
 ├── stats_handler.py         # Statistics
@@ -217,8 +223,30 @@ AUTO_MIGRATE_EXISTING_DATA = False   # Set to True for automatic CSV migration
 
 ## 🎯 Key Features in Detail
 
+### ArXiv Paper Discovery with !find
+
+The `!find` command provides intelligent arXiv paper discovery:
+
+1. **Natural Language Search**: `!find transformer architectures` - No quotes needed
+2. **Relevance Ranking**: Uses arXiv API to find the most relevant paper based on abstracts
+3. **Automatic Processing**: Downloads and processes the top result through the full pipeline
+4. **Robust URL Handling**: Handles all arXiv URL formats including versioned URLs (v1, v2, etc.)
+5. **Duplicate Prevention**: Checks if paper already exists in your library
+6. **Full Integration**: Leverages existing wget pipeline, AI summarization, and personalization
+
+**Example Usage:**
+
+```discord
+!find transformer architectures
+!find machine learning optimization
+!find neural network pruning techniques
+!find deep reinforcement learning survey
+```
+
 ### Personalized Research Assistant
+
 The `!mem` command creates a personalized research experience:
+
 1. **Store Interests**: `!mem I study transformer architectures and attention mechanisms`
 2. **Get Recommendations**: ArXiv papers automatically include personalized relevance explanations
 3. **Privacy**: Each user's profile is completely isolated

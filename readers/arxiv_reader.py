@@ -32,14 +32,14 @@ def download_arxiv_pdf(arxiv_link, local_directory):
     print(f"PDF downloaded to: {local_file_path}")
 
 def extract_arxiv_id(url, include_version=False):
-    # Patterns for different types of Arxiv URLs
+    # Patterns for different types of Arxiv URLs (supporting both http and https)
     patterns = [
-        r'https://browse\.arxiv\.org/html/(\d{4}\.\d{4,5}v?\d*)',  # HTML version (browse)
-        r'https://arxiv\.org/html/(\d{4}\.\d{4,5}v?\d*)',         # HTML version (direct)
-        r'https://arxiv\.org/abs/(\d{4}\.\d{4,5}v?\d*)',          # Abstract page (with version support)
+        r'https?://browse\.arxiv\.org/html/(\d{4}\.\d{4,5}v?\d*)',  # HTML version (browse)
+        r'https?://arxiv\.org/html/(\d{4}\.\d{4,5}v?\d*)',         # HTML version (direct)
+        r'https?://arxiv\.org/abs/(\d{4}\.\d{4,5}v?\d*)',          # Abstract page (with version support)
         # pdf page may or may not have .pdf extension
-        r'https://arxiv\.org/pdf/(\d{4}\.\d{4,5}v?\d*)',           # PDF version new
-        r'https://arxiv\.org/pdf/(\d{4}\.\d{4,5}v?\d*)\.pdf'       # PDF version old
+        r'https?://arxiv\.org/pdf/(\d{4}\.\d{4,5}v?\d*)',           # PDF version new
+        r'https?://arxiv\.org/pdf/(\d{4}\.\d{4,5}v?\d*)\.pdf'       # PDF version old
     ]
 
     for pattern in patterns:
