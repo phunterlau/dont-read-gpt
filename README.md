@@ -14,6 +14,7 @@ A Discord bot that processes URLs, extracts content, generates AI-powered summar
 
 ### Supported Content Sources
 - **ArXiv Papers**: Enhanced processing with personalized "Why You Should Read This" sections
+- **PDF Documents**: Direct PDF text extraction and processing from any URL
 - **GitHub Repositories**: README and code analysis
 - **YouTube Videos**: Transcript extraction and summarization
 - **Hugging Face Models**: Model card analysis
@@ -49,6 +50,9 @@ https://arxiv.org/abs/2304.14979
 # Or use explicit command
 !wget https://arxiv.org/abs/2304.14979
 
+# Force refresh a document (bypasses cache, reprocesses content)
+!wget --force https://arxiv.org/abs/2304.14979
+
 # Search arXiv for papers and auto-process the top result
 !find transformer architectures
 !find machine learning optimization
@@ -77,6 +81,7 @@ https://arxiv.org/abs/2304.14979
 
 ### 📥 Content Management
 - `!wget <url>` - Process a URL explicitly
+- `!wget --force <url>` - Force refresh and reprocess a URL (bypasses cache)
 - Direct URL posting - Just paste a URL for automatic processing
 
 ### 🧠 Personalization (NEW!)
@@ -128,6 +133,7 @@ commands/
 readers/
 ├── base_reader.py           # Abstract base class
 ├── arxiv_reader.py          # ArXiv paper processing
+├── pdf_reader.py            # Direct PDF document processing
 ├── github_reader.py         # GitHub repository analysis
 ├── youtube_reader.py        # YouTube transcript extraction
 ├── huggingface_reader.py    # Hugging Face model cards
@@ -242,6 +248,33 @@ The `!find` command provides intelligent arXiv paper discovery:
 !find neural network pruning techniques
 !find deep reinforcement learning survey
 ```
+
+### PDF Document Processing
+
+The bot automatically detects and processes PDF documents from direct URLs:
+
+1. **Automatic Detection**: Any URL ending in `.pdf` or serving PDF content
+2. **Text Extraction**: Uses pdfplumber to extract readable text from PDF files
+3. **Full Pipeline Integration**: PDFs get the same AI summarization and keyword extraction
+4. **File Storage**: Saves both the extracted text (JSON) and original PDF file
+5. **Content Cleaning**: Removes PDF artifacts and formats text for better readability
+
+**Example Usage:**
+
+```discord
+# Direct PDF URL processing
+https://example.com/document.pdf
+!wget https://dennyzhou.github.io/LLM-Reasoning-Stanford-CS-25.pdf
+
+# Works with academic papers, reports, presentations, etc.
+```
+
+**Supported PDF Sources:**
+- Academic papers from university websites
+- Research reports and whitepapers
+- Technical documentation
+- Conference presentations
+- Any publicly accessible PDF document
 
 ### Personalized Research Assistant
 
