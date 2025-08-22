@@ -36,132 +36,252 @@ def gen_gpt_completion(prompt, temp=0.0, engine="text-davinci-003", max_tokens=1
 #    partial(backoff.expo, max_value=2),
 #    (openai.RateLimitError, openai.APIError, openai.APIConnectionError),
 #)
-def gen_gpt_chat_completion(system_prompt, user_prompt, temp=0.0, engine="gpt-4o", max_tokens=1024,
-                            top_p=1, frequency_penalty=0, presence_penalty=0,):
+def gen_gpt_chat_completion(system_prompt, user_prompt, temp=0.0, engine="gpt-4o", max_tokens=2048,
+                            top_p=1, frequency_penalty=0, presence_penalty=0, use_json_mode=False):
     
-    response = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[{"role":"system", "content":system_prompt},
-                            {"role":"user", "content":user_prompt}],
-                    temperature=1,
-                    max_tokens=max_tokens,
-                    top_p=1,
-                    frequency_penalty=0,
-                    presence_penalty=0)
+    model_to_use = "gpt-4o-mini" if "gpt-4o-mini" in engine else "gpt-4o"
+    
+    request_params = {
+        "model": model_to_use,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        "temperature": temp,
+        "max_tokens": max_tokens,
+        "top_p": top_p,
+        "frequency_penalty": frequency_penalty,
+        "presence_penalty": presence_penalty
+    }
+    
+    if use_json_mode:
+        request_params["response_format"] = {"type": "json_object"}
+
+    response = client.chat.completions.create(**request_params)
     return response
 
-def generate_summary(text_snippet, summary_type='general'):
+def generate_summary(text_snippet, summary_type='general', focus=None, use_arxiv_prompt=False, user_memory=None):
 
-    max_input_words = 100000
-    max_input_words_chinese = 50000
-    max_output_tokens = 1024
-    total_tokens = 4097  # Assuming an average of 2 tokens per word
+    max_input_words = 150000  # Increased limit for more powerful models
+    max_input_words_chinese = 75000
+    max_output_tokens = 2048
 
-    if total_tokens > 4097:
-        raise ValueError("The total number of tokens (input + output) must not exceed 4097.")
+    # ... (rest of the function remains the same until prompts) ...
 
     # Truncate the text snippet if it's too long
     words = text_snippet.split()
-    # for non-English text, we need to use a different method to split the text into words and fit the token size
     if is_chinese(text_snippet):
         text_snippet = text_snippet[:max_input_words_chinese]
     elif len(words) > max_input_words:
         words = words[:max_input_words]
         text_snippet = " ".join(words)
 
-    #arxiv_paper_prompt = f'Please provide a summary of the following ArXiv paper\'s title and abstract within 450 chars, addressing the following aspects:\n1. Main problem or research question\n2. Key methodology or approach\n3. Main results or findings\n4. Comparison to previous work or state of the art\n5. Potential applications or implications\n6. Limitations or future work\n\n{text_snippet}\n\nSummary:'
-    #github_repo_prompt = f'Please provide a summary of the following GitHub repository README.md· within 450 chars, addressing the following aspects:\n1. Purpose of the project\n2. Key features and benefits\n3. Technology stack or programming languages used\n4. Dependencies or prerequisites\n5. Installation, setup, and usage instructions\n6. Maintenance and main contributors\n7. Known limitations or issues\n8. Project license and usage restrictions\n9. Contribution guidelines\n10. Additional documentation or resources\n\n{text_snippet}\n\nSummary:'
-    #general_prompt = f'Please provide a concise summary of the following text within 380 chars, addressing the following aspects:\n1. Main topic or subject\n2. Core arguments or points\n3. Significant findings, results, or insights\n4. Comparisons or contrasts with other ideas or studies\n5. Implications or potential applications\n\n{text_snippet}\n\nSummary:'
-    #arxiv_paper_prompt = f'You are a scientific researcher. Please provide a concise summary of the following ArXiv paper\'s title and abstract, limit 100 words, addressing the following aspects if available:\n1. Main problem or research question\n2. Key methodology or approach\n3. Main results or findings\n4. Comparison to previous work or state of the art\n5. Potential applications or implications\n6. Limitations or future work'
-    #github_repo_prompt = f'You are a scientific researcher. Please provide a concise summary of the following GitHub repository README.md, limit 100 words, addressing the following aspects if available:\n1. Purpose of the project\n2. Key features and benefits\n3. Technology stack or programming languages used\n4. Dependencies or prerequisites\n5. Installation, setup, and usage instructions\n6. Maintenance and main contributors\n7. Known limitations or issues\n8. Project license and usage restrictions\n9. Contribution guidelines\n10. Additional documentation or resources'
-    #youtube_prompt = f'You are a scientific researcher. Expert in technical and research content analysis: Summarize the video transcript (150 words max). Cover if available: 1. Main topic. 2. Key concepts/technologies. 3. Primary arguments/points. 4. Significant findings/conclusions. 5. Methodologies/approaches. 6. Examples/case studies. 7. Relation to current trends/knowledge. 8. Counterpoints/alternatives. 9. Future implications/applications. 10. Key quotes/statements. 11. Limitations/weaknesses. 12. Additional resources. 13. Key takeaways.'
-    arxiv_paper_prompt = (
-    'You are a scientific researcher. Provide a focused 100-word summary of this ArXiv paper that emphasizes:\n'
-    '1. Key Innovation: What is novel or groundbreaking about this work?\n'
-    '2. Core Contribution: What specific technical/methodological advancement does it make?\n'
-    '3. Impact: How does this advance the field or solve an important problem?\n'
-    '4. Significance: Why does this matter to the research community or broader applications?\n'
-    'Format: Start with the innovation, then explain the contribution, followed by impact and significance.\n'
-    'Note: Be specific about technical details while maintaining clarity. Prioritize describing what makes this work unique.'
-    )
-    github_repo_prompt = (
-    'You are a scientific researcher. Please provide a concise summary of the following GitHub repository README.md, limit 100 words. Include only the aspects that are available:\n'
-    '1. Purpose of the project.\n'
-    '2. Key features and benefits.\n'
-    '3. Technology stack or programming languages used.\n'
-    '4. Dependencies or prerequisites.\n'
-    '5. Installation, setup, and usage instructions.\n'
-    '6. Maintenance and main contributors.\n'
-    '7. Known limitations or issues.\n'
-    '8. Project license and usage restrictions.\n'
-    '9. Contribution guidelines.\n'
-    '10. Additional documentation or resources.\n'
-    'Note: Omit any aspects not mentioned in the README.md.'
-    )
-    youtube_prompt = (
-    'You are a technical content analyst. Provide a focused 100-word summary of this video transcript that emphasizes:\n'
-    '1. Core Message: What is the main insight or key learning?\n'
-    '2. Technical Details: What specific methods, tools, or technologies are discussed?\n'
-    '3. Practical Application: How can viewers apply this information?\n'
-    '4. Expert Insights: What unique perspectives or expert knowledge is shared?\n'
-    'Format: Begin with the core message, then explain technical aspects, followed by practical applications and expert insights.\n'
-    'Note: Prioritize actionable insights and technical depth while maintaining clarity. Focus on what makes this content valuable to practitioners.'
-    )
+    # Choose prompt based on whether this is an arXiv paper
+    if use_arxiv_prompt:
+        # Specialized arXiv academic paper analysis prompt
+        json_prompt_structure = """
+        You are an academic research analyst AI specializing in arXiv papers. Your task is to provide a comprehensive analysis of the provided academic paper in English.
 
-    huggingface_model_prompt = (
-    'You are an AI expert. Please provide a concise summary of the Hugging Face model page, limit 100 words. Include only the aspects that are available on the page:\n'
-    '1. Model Overview: A brief description and primary function of the model.\n'
-    '2. Architecture: Type of neural network used.\n'
-    '3. Training Data: Key datasets and preprocessing details, if mentioned.\n'
-    '4. Performance: Important metrics and benchmark results, if provided.\n'
-    '5. Use Cases: Typical applications and examples of implementation, if listed.\n'
-    '6. Fine-tuning: Information on adaptability for specific tasks, if available.\n'
-    '7. Limitations and Biases: Any known constraints and ethical considerations, if discussed.\n'
-    '8. Accessibility: License information and model availability, if specified.\n'
-    'Note: Exclude any aspects that are not explicitly mentioned on the model page.'
-    )
-    ipython_notebook_prompt = (
-    'You are a data scientist. Please provide a concise summary of the following IPython notebook, limit 100 words. Include only the aspects that are available:\n'
-    '1. Main objectives or goals of the notebook.\n'
-    '2. Key data analysis or computational concepts demonstrated.\n'
-    '3. Significant findings or results derived from the notebook.\n'
-    '4. Code and methodologies used and their significance.\n'
-    '5. Any visualizations or graphical representations and their insights.\n'
-    '6. Conclusions or potential applications of the notebook\'s content.\n'
-    '7. Limitations or areas for further exploration, if mentioned.\n'
-    'Note: Focus only on the aspects explicitly included in the notebook.'
-    )
-    general_prompt = (
-    'You are a scientific researcher. Please provide a concise summary of the following text, limited to 100 words. Include only the aspects that are available:\n'
-    '1. Main topic or subject.\n'
-    '2. Core arguments or points.\n'
-    '3. Significant findings, results, or insights.\n'
-    '4. Comparisons or contrasts with other ideas or studies.\n'
-    '5. Implications or potential applications.\n'
-    'Note: Focus only on the aspects explicitly mentioned in the text.'
-    )
-    prompts = {
-        'arxiv': arxiv_paper_prompt,
-        'github': github_repo_prompt,
-        'youtube': youtube_prompt,
-        'huggingface': huggingface_model_prompt,
-        'ipython': ipython_notebook_prompt,
-        'general': general_prompt,
-    }
+        JSON Schema:
+        {
+          "title": "The main title of the paper.",
+          "one_sentence_summary": "A single, concise sentence that captures the core essence of the paper in English.",
+          "suggested_keywords": ["A list of 5-7 relevant academic keywords or key phrases."],
+          "main_point": "The central thesis or main argument of the paper (max 80 words).",
+          "innovation": "What novel contributions or innovations this paper presents (max 80 words).",
+          "contribution": "The specific contributions to the field or state of knowledge (max 80 words).",
+          "improvement": "How this work improves upon existing methods or understanding (max 60 words).",
+          "limitations": "Limitations, weaknesses, or areas for improvement identified (max 60 words).",
+          "insights": "Key insights, implications, or takeaways from this work (max 60 words).",
+          "one_line_summary": "A single impactful sentence that summarizes the entire paper (max 40 words)."
+        }
 
-    system_prompt = prompts.get(summary_type, prompts['general'])
-    user_prompt = text_snippet
+        Instructions:
+        - Analyze the paper comprehensively but concisely
+        - All responses must be in English
+        - Stay within the specified word limits for each section (max 400 words total)
+        - Focus on academic rigor and clarity
+        - If a section's content is not clearly present in the text, provide "Not clearly specified" for that field
+        - Extract the actual paper title when possible
+        - Keywords should be academic and searchable terms
+        """
+        
+        # Add personalization section if user memory is provided
+        if user_memory and user_memory.strip():
+            json_prompt_structure += f"""
+        
+        PERSONALIZATION INSTRUCTION:
+        Based on the user's research interests provided below, add a section in your JSON output with the key "why_you_should_read". 
+        This section should explain why the paper is relevant to the user's specific interests and research focus. 
+        If the paper is not clearly relevant to their interests, omit this key entirely.
+        Keep this section concise but compelling (max 100 words).
+        
+        User's Research Interests: {user_memory.strip()}
+        """
+    else:
+        # Regular JSON prompt structure for non-arXiv content
+        json_prompt_structure = """
+        You are a research analyst AI. Your task is to extract the most critical information from the provided text and structure it as a JSON object.
+
+        JSON Schema:
+        {
+          "title": "The main title of the document.",
+          "one_sentence_summary": "A single, concise sentence that captures the core essence of the document.",
+          "suggested_keywords": ["A list of 5-7 relevant keywords or key phrases that categorize the content."],
+          "key_takeaways": ["A list of 3-5 bullet points representing the most important insights or findings."],
+          "methodology": "A brief description of the methodology, tools, or approach used. Omit if not applicable.",
+          "results": "A brief description of the key results or outcomes. Omit if not applicable.",
+          "critique_and_limitations": "A brief, constructive critique of the work, mentioning any limitations or potential weaknesses. Omit if not mentioned.",
+          "confidence_score": "A float between 0.0 and 1.0 indicating your confidence in the accuracy and completeness of this summary based on the source text."
+        }
+
+        Instructions:
+        - Adhere strictly to the JSON schema.
+        - If a field's content is not present in the text, omit the key from the JSON object.
+        - The "title" should be extracted or inferred from the text.
+        - The "key_takeaways" should be distinct, impactful points.
+        - The "suggested_keywords" should be specific and relevant.
+        """
+
+    if focus:
+        json_prompt_structure += f"\n- Pay special attention to the following aspect and ensure it is covered in the summary: '{focus}'"
+
+    system_prompt = json_prompt_structure
+    user_prompt = f"Here is the text to summarize:\n\n---\n\n{text_snippet}"
 
     try:
-        response = gen_gpt_chat_completion(system_prompt, user_prompt, max_tokens=max_output_tokens)
-        summary = response.choices[-1].message.content.strip()
-        return summary
+        response = gen_gpt_chat_completion(
+            system_prompt, 
+            user_prompt, 
+            max_tokens=max_output_tokens, 
+            use_json_mode=True,
+            temp=0.2 # A little creativity for better summaries
+        )
+        
+        summary_json = response.choices[-1].message.content.strip()
+        
+        # Basic validation if it's a string that looks like JSON
+        if summary_json.startswith('{') and summary_json.endswith('}'):
+            return summary_json
+        else:
+            # Fallback to text if JSON parsing fails
+            escaped_summary = summary_json.replace('"', "'").replace('\n', ' ')
+            return f'{{"title": "Summary", "one_sentence_summary": "{escaped_summary}"}}'
+
     except openai.BadRequestError as e:
+        # ... (error handling remains the same) ...
         if "maximum context length" in str(e):
             error_message = "The input is too long. Please reduce the length and try again."
         else:
             error_message = "An error occurred: " + str(e)
-        return error_message
+        return '{"error": "' + error_message.replace('"', "'") + '"}'
+    except Exception as e:
+        error_msg = str(e).replace('"', "'")
+        return '{"error": "An unexpected error occurred: ' + error_msg + '"}'
+
+def process_user_memory(existing_profile: str, new_memory_input: str) -> str:
+    """
+    Process and synthesize user memory using GPT-4o-mini.
+    Takes existing profile and new memory input, returns updated profile.
+    """
+    system_prompt = """You are a research assistant specializing in understanding and synthesizing user research preferences and interests.
+
+Your task is to take a user's existing research profile and a new research interest they've provided, then create a single, coherent, updated profile that captures their comprehensive research interests.
+
+Guidelines:
+1. If no existing profile is provided, create a new profile based solely on the new interest
+2. If an existing profile exists, intelligently merge the new interest with the existing one
+3. Look for overlapping themes, complementary areas, and natural connections
+4. Maintain the user's specific terminology and preferences where possible
+5. Keep the profile concise but comprehensive (aim for 2-4 sentences, max 200 words)
+6. Focus on research areas, methodologies, topics, and academic interests
+7. Avoid redundancy - don't repeat the same concepts multiple times
+8. Create a narrative flow that shows the breadth and depth of their interests
+
+Output format: Return only the updated research profile text, no additional commentary or formatting."""
+
+    if existing_profile and existing_profile.strip():
+        user_prompt = f"""Existing Profile: {existing_profile.strip()}
+
+New Interest: {new_memory_input.strip()}
+
+Please synthesize these into a single, updated research profile."""
+    else:
+        user_prompt = f"""New Interest: {new_memory_input.strip()}
+
+Please create a research profile based on this interest."""
+
+    try:
+        response = gen_gpt_chat_completion(
+            system_prompt, 
+            user_prompt, 
+            max_tokens=300,
+            engine="gpt-4o-mini",
+            temp=0.3  # Slight creativity for better synthesis
+        )
+        
+        updated_profile = response.choices[-1].message.content.strip()
+        return updated_profile
+        
+    except Exception as e:
+        # Fallback: If AI processing fails, combine manually
+        if existing_profile and existing_profile.strip():
+            return f"{existing_profile.strip()} Additionally interested in: {new_memory_input.strip()}"
+        else:
+            return new_memory_input.strip()
+
+def generate_personalized_section(document_content: str, user_memory: str) -> str:
+    """
+    Generate a personalized "Why You Should Read This" section for an existing document.
+    This is a lightweight call specifically for cached documents.
+    
+    Args:
+        document_content: The content or summary of the document
+        user_memory: The user's research interests profile
+    
+    Returns:
+        Personalized text explaining why the user should read this, or empty string if not relevant
+    """
+    system_prompt = """You are a research assistant specializing in personalized academic recommendations.
+
+Your task is to analyze a research document and determine if it's relevant to a user's specific research interests. If it is relevant, provide a concise explanation of why they should read it.
+
+Guidelines:
+1. Focus on connections between the document's content and the user's interests
+2. Be specific about what aspects would be most valuable to the user
+3. Keep the response concise but compelling (max 100 words)
+4. If the document is not clearly relevant to their interests, return "NOT_RELEVANT"
+5. Look for both direct matches and potential interdisciplinary connections
+6. Consider methodology, applications, and theoretical contributions that align with their interests
+
+Output format: Return either a personalized recommendation or "NOT_RELEVANT"."""
+
+    user_prompt = f"""Document Content/Summary: {document_content[:2000]}
+
+User's Research Interests: {user_memory}
+
+Please analyze if this document is relevant to the user's interests and provide a personalized recommendation if appropriate."""
+
+    try:
+        response = gen_gpt_chat_completion(
+            system_prompt, 
+            user_prompt, 
+            max_tokens=150,
+            engine="gpt-4o-mini",
+            temp=0.3
+        )
+        
+        result = response.choices[-1].message.content.strip()
+        
+        # Check if the AI determined the document is not relevant
+        if "NOT_RELEVANT" in result.upper():
+            return ""
+        
+        return result
+        
+    except Exception as e:
+        # Fail silently for personalization - don't break the main flow
+        return ""
 
 def generate_embedding(text_snippet):
     #embedding = openai.Embedding.create(
@@ -174,8 +294,21 @@ def generate_embedding(text_snippet):
 
 def extract_keywords_from_summary(summary):
     prompt = (
-        f"Given the following summary, identify important keywords or phrases that would be suitable for creating internal links in Obsidian. These keywords should represent the main concepts, topics, or entities in the summary.\n\n"
-        f"Please provide a list of Obsidian Keywords, separated by commas:"
+        "You are an expert knowledge management assistant specializing in extracting meaningful keywords for research databases and knowledge graphs.\n\n"
+        "From the following summary, identify the most important keywords and phrases that capture:\n"
+        "1. Core concepts and technical terms\n"
+        "2. Technologies, tools, and methodologies mentioned\n"
+        "3. Research areas and academic fields\n"
+        "4. Key entities (organizations, people, products, datasets)\n"
+        "5. Important processes or approaches\n\n"
+        "Guidelines:\n"
+        "- Focus on substantive, searchable terms (avoid generic words like 'study', 'research', 'paper')\n"
+        "- Include both specific technical terms and broader conceptual keywords\n"
+        "- Use the exact terminology from the text when possible\n"
+        "- Prefer noun phrases over single words when they represent complete concepts\n"
+        "- Limit to 8-12 most relevant keywords\n\n"
+        "Format: Return only the keywords separated by commas, no additional text or explanations.\n"
+        "Example output: Machine Learning, Natural Language Processing, Transformer Architecture, BERT, Sentiment Analysis"
     )
     #response = openai.Completion.create(
     #    engine="text-davinci-003",
@@ -191,8 +324,19 @@ def extract_keywords_from_summary(summary):
     try:
         response = gen_gpt_chat_completion(system_prompt, user_prompt, max_tokens=256)
 
-        #keywords = response.choices[0].text.strip().split(', ')
-        keywords = response.choices[-1].message.content.strip().split(', ')
+        # Extract keywords from response and clean them up
+        keywords_text = response.choices[-1].message.content.strip()
+        
+        # Remove any leading text and get just the keywords
+        if ':' in keywords_text:
+            keywords_text = keywords_text.split(':', 1)[1].strip()
+        
+        # Split by commas and clean each keyword
+        keywords = [kw.strip().strip('"').strip("'") for kw in keywords_text.split(',')]
+        
+        # Filter out empty keywords and very short ones
+        keywords = [kw for kw in keywords if len(kw.strip()) > 2]
+        
         return keywords
     except openai.BadRequestError as e:
         # Check if the error is due to exceeding maximum context length
@@ -228,30 +372,61 @@ def download_youtube_transcript(video_id):
         return f"Error downloading transcript: {str(e)}"
 
 def summary_to_obsidian_markdown(summary, keywords):
+    """
+    Convert a summary to Obsidian markdown format by wrapping keywords in [[]] links.
+    Improved to handle better keyword matching and formatting.
+    """
+    processed_summary = summary
     not_found_keywords = []
 
     for keyword in keywords:
-        pattern = re.compile(re.escape(keyword), re.IGNORECASE)
-        matches = pattern.findall(summary)
-        if matches:
-            summary = pattern.sub(f"[[{keyword}]]", summary)
-        else:
-            not_found_keywords.append(keyword)
+        # Clean up the keyword (remove extra quotes, whitespace)
+        clean_keyword = keyword.strip().strip('"').strip("'")
+        if not clean_keyword:
+            continue
+            
+        # Create case-insensitive pattern for exact and partial matching
+        # Handle both exact matches and possessive forms
+        patterns = [
+            re.compile(r'\b' + re.escape(clean_keyword) + r'\b', re.IGNORECASE),
+            re.compile(r'\b' + re.escape(clean_keyword) + r's\b', re.IGNORECASE),  # plural
+        ]
+        
+        found_match = False
+        for pattern in patterns:
+            if pattern.search(processed_summary):
+                # Replace only if not already wrapped in [[]]
+                def replace_func(match):
+                    text = match.group(0)
+                    if not (processed_summary[max(0, match.start()-2):match.start()] == '[[' and 
+                           processed_summary[match.end():match.end()+2] == ']]'):
+                        return f"[[{clean_keyword}]]"
+                    return text
+                
+                processed_summary = pattern.sub(replace_func, processed_summary)
+                found_match = True
+                break
+        
+        if not found_match:
+            not_found_keywords.append(clean_keyword)
     
+    # Add additional keywords section for important terms not found in text
     if not_found_keywords:
         additional_keywords = ", ".join(f"[[{keyword}]]" for keyword in not_found_keywords)
-        summary += f"\n\nAdditional Keywords: {additional_keywords}"
+        processed_summary += f"\n\nAdditional Keywords: {additional_keywords}"
     
-    return summary
+    return processed_summary
 
 def test_obsidian_markdown():
-    summary = "This is a summary of a paper about the use of AI in the field of medicine. The paper discusses the use of AI to diagnose diseases and predict the effectiveness of treatments. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes."
+    """Test the improved Obsidian markdown conversion with better keywords."""
+    summary = "This paper introduces MLCopilot, a framework for automating machine learning pipelines using large language models like ChatGPT. The system demonstrates competitive programming capabilities and automates hyperparameter optimization in various AI applications."
+    
+    print("Testing improved keyword extraction and Obsidian markdown conversion...")
     keywords = extract_keywords_from_summary(summary)
-def test_obsidian_markdown():
-    summary = "This is a summary of a paper about the use of AI in the field of medicine. The paper discusses the use of AI to diagnose diseases and predict the effectiveness of treatments. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes. The paper also discusses the use of AI to predict the effectiveness of treatments for diseases such as cancer and diabetes."
-    keywords = extract_keywords_from_summary(summary)
+    print(f"Extracted keywords: {keywords}")
+    
     result = summary_to_obsidian_markdown(summary, keywords)
-    print(keywords, result)
+    print(f"Obsidian markdown result:\n{result}")
 
 if __name__ == '__main__':
     test_obsidian_markdown()
