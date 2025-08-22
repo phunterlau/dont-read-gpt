@@ -26,7 +26,7 @@ A Discord bot that processes URLs, extracts content, generates AI-powered summar
 ```bash
 # Clone the repository
 git clone https://github.com/phunterlau/dont-read-gpt
-cd discord
+cd dont-read-gpt
 
 # Install dependencies
 pip install -r requirements.txt
