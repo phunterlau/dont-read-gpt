@@ -2,12 +2,21 @@ import os
 import re
 import requests
 from bs4 import BeautifulSoup
+from .base_reader import BaseReader
 
 def download_arxiv_pdf(arxiv_link, local_directory):
+    # Handle different arXiv URL formats by converting to PDF link
     if arxiv_link.startswith("https://arxiv.org/abs/"):
         pdf_link = arxiv_link.replace("https://arxiv.org/abs/", "https://arxiv.org/pdf/") + ".pdf"
     elif arxiv_link.startswith("https://arxiv.org/pdf/"):
         pdf_link = arxiv_link
+    elif arxiv_link.startswith("https://arxiv.org/html/") or arxiv_link.startswith("https://browse.arxiv.org/html/"):
+        # Extract paper ID from HTML URL and convert to PDF URL
+        paper_id = extract_arxiv_id(arxiv_link, include_version=False)
+        if paper_id:
+            pdf_link = f"https://arxiv.org/pdf/{paper_id}.pdf"
+        else:
+            raise ValueError("Could not extract paper ID from HTML URL")
     else:
         raise ValueError("Invalid arXiv link")
 
@@ -25,8 +34,9 @@ def download_arxiv_pdf(arxiv_link, local_directory):
 def extract_arxiv_id(url, include_version=False):
     # Patterns for different types of Arxiv URLs
     patterns = [
-        r'https://browse\.arxiv\.org/html/(\d{4}\.\d{4,5}v?\d*)',  # HTML version
-        r'https://arxiv\.org/abs/(\d{4}\.\d{4,5})',                # Abstract page
+        r'https://browse\.arxiv\.org/html/(\d{4}\.\d{4,5}v?\d*)',  # HTML version (browse)
+        r'https://arxiv\.org/html/(\d{4}\.\d{4,5}v?\d*)',         # HTML version (direct)
+        r'https://arxiv\.org/abs/(\d{4}\.\d{4,5}v?\d*)',          # Abstract page (with version support)
         # pdf page may or may not have .pdf extension
         r'https://arxiv\.org/pdf/(\d{4}\.\d{4,5}v?\d*)',           # PDF version new
         r'https://arxiv\.org/pdf/(\d{4}\.\d{4,5}v?\d*)\.pdf'       # PDF version old
@@ -63,7 +73,7 @@ def get_arxiv_content_old_version(url):
 def fetch_arxiv_page(arxiv_id):
     # Define a list of URL patterns to try
     url_patterns = [
-        f"https://browse.arxiv.org/html/{arxiv_id}v{{version}}",
+        #f"https://browse.arxiv.org/html/{arxiv_id}v{{version}}",
         f"https://arxiv.org/html/{arxiv_id}v{{version}}"
     ]
     
@@ -178,3 +188,7 @@ def get_arxiv_content(url):
         #return "Arxiv page not found."
         print("Arxiv page not found. Downgrading to old version.")
         return get_arxiv_content_old_version(url)
+
+class ArxivReader(BaseReader):
+    def read(self, url: str) -> str:
+        return get_arxiv_content(url)

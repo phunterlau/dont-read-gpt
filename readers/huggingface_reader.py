@@ -25,11 +25,19 @@ def parse_huggingface_html(html_content):
 
     return sections
 
-def get_huggingface_content(url):
-    model_html_content = fetch_huggingface_model_page(url)
-    if model_html_content:
-        model_sections = parse_huggingface_html(model_html_content)
-        content = '\n\n'.join([f'**{section_name}**\n{section_content}' for section_name, section_content in model_sections.items()])
-        return content
-    else:
-        return "Hugging Face model page not found."
+from .base_reader import BaseReader
+from bs4 import BeautifulSoup
+import requests
+
+class HuggingfaceReader(BaseReader):
+    def read(self, url: str) -> str:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Find the main content of the page
+        main_content = soup.find('div', class_='prose')
+        
+        if main_content:
+            return main_content.get_text()
+        else:
+            return soup.get_text()
