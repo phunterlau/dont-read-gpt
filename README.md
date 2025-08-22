@@ -1,89 +1,284 @@
-# Dont-Read-GPT: A Discord Bot for Summarizing Web Content
+# Discord Knowledge Bot
 
-Dont-Read-GPT is my Discord bot designed to help me save time by summarizing web content from many knowledge sources like Arxiv. Instead of saving content that I may never read, let the bot generate a concise summary so I can quickly grasp the key points and insights. It currently supports:
+A Discord bot that processes URLs, extracts content, generates AI-powered summaries, and provides personalized research assistance with comprehensive search functionality.
 
-* Arxiv
-* Huggingface model
-* Github
-* Youtube
-* Reddit
-* WeChat Article
-* other blogs or article page
+## 🌟 Features
 
-On the roadmap: (contribution welcomed!)
-* PDF link
-* Medium member blog
-* Hackernews
-* X/Twitter thread
+### Core Functionality
+- **URL Processing**: Automatically process URLs from ArXiv, GitHub, YouTube, Hugging Face, Reddit, and general web pages
+- **AI-Powered Summaries**: Generate intelligent summaries using GPT-4o with keyword extraction
+- **Personalized Research**: Store user research interests for personalized arXiv paper recommendations
+- **Dual Storage System**: Both SQLite database and legacy CSV indexing for reliability
+- **Multi-User Support**: Complete user isolation with personalized document libraries
+- **Rich Discord Integration**: Beautiful embeds with progress indicators and error handling
 
-## Features
+### Supported Content Sources
+- **ArXiv Papers**: Enhanced processing with personalized "Why You Should Read This" sections
+- **GitHub Repositories**: README and code analysis
+- **YouTube Videos**: Transcript extraction and summarization
+- **Hugging Face Models**: Model card analysis
+- **Reddit Threads**: Thread summarization
+- **General Web Pages**: Content extraction and analysis
 
-- Supports summarization of web content from variety of knowledge sources
-- Uses OpenAI GPT model for high-quality summaries tailored for each source
-- Easy integration with Discord, just send a link and AI does everything else.
+## 🚀 Quick Start
 
-## Installation
+### Installation
+```bash
+# Clone the repository
+git clone <repository-url>
+cd discord
 
-1. Clone the repository:
-```
-git clone https://github.com/phunterlau/dont-read-gpt
-```
-
-2. Change to the project directory:
-```
-cd dont-read-gpt
-```
-
-3. Install the required dependencies:
-```
+# Install dependencies
 pip install -r requirements.txt
-```
 
-4. Set up your OpenAI API key:
-```
-export OPENAI_KEY="your_openai_api_key"
-```
+# Set environment variables
+export OPENAI_KEY=your_openai_api_key
+export DISCORD_TOKEN=your_discord_bot_token
+export REDDIT_APP_ID=your_reddit_app_id      # Optional
+export REDDIT_APP_SECRET=your_reddit_app_secret  # Optional
 
-5. Set up your Discord bot token and other app tokens:
-```
-export DISCORD_BOT_TOKEN="your_discord_bot_token"
-# get Reddit tokens as https://www.reddit.com/prefs/apps
-export REDDIT_APP_ID="your reddit app ID"
-export REDDIT_APP_SECRET="your reddit secret"
-```
-
-6. Run the bot:
-```
+# Run the bot
 python my_bot.py
 ```
 
-## Usage
+### Basic Usage
+```discord
+# Process a URL (automatic detection)
+https://arxiv.org/abs/2304.14979
 
-Invite the Dont-Read-GPT bot to your Discord server and use the following commands:
+# Or use explicit command
+!wget https://arxiv.org/abs/2304.14979
 
-- `!wget <URL>`: Summarizes the content from the given URL (webpage, ArXiv paper, or GitHub repository)
+# Set your research interests for personalized arXiv summaries
+!mem I'm interested in transformer architectures and attention mechanisms
 
-## Examples
+# Search your documents
+!grep machine learning
+!egrep "neural networks"
 
-- Summarize a tech blog post:
+# View statistics
+!stats
+
+# See recent additions
+!tail
 ```
-!wget https://toooold.com/2023/04/08/magnificient_underdogs.html
+
+## 📋 Commands Reference
+
+### 🔍 Search Commands
+- `!grep <query>` - Search all content and summaries (case-insensitive)
+- `!egrep <keyword>` - Search by keyword (case-insensitive)
+- `!related <id>` - Find documents related to a specific document
+
+### 📥 Content Management
+- `!wget <url>` - Process a URL explicitly
+- Direct URL posting - Just paste a URL for automatic processing
+
+### 🧠 Personalization (NEW!)
+- `!mem <interests>` - Set your research interests for personalized arXiv summaries
+- `!mem --show` - View your current research profile
+- `!mem --clear` - Clear your research profile
+
+### 📊 Information & Utilities
+- `!stats` - Show system statistics (documents, keywords, usage)
+- `!tail` - Show 3 most recently processed documents
+- `!whoami` - Show your Discord user information
+- `!index` - Reindex documents (admin)
+- `!migrate` - Database migration utilities (admin)
+
+## 🏗️ Project Structure
+
+### Entry Point
+```
+my_bot.py                 # Main Discord bot entry point
 ```
 
-- Summarize an ArXiv paper:
+### Core Systems
 ```
-!wget https://arxiv.org/abs/1706.03762
+database_manager.py       # SQLite database operations
+indexer.py               # Legacy CSV indexing system
+ai_func.py               # GPT integration and AI functions
+content_processor.py     # Content processing pipeline
+url_processor.py         # URL routing and reader selection
 ```
 
-- Summarize a GitHub repository:
+### Command Handlers
 ```
-!wget https://github.com/phunterlau/dont-read-gpt
+commands/
+├── mem_handler.py           # Personalized memory system
+├── wget_handler.py          # URL processing
+├── search_handler.py        # Text search (!grep)
+├── keyword_search_handler.py # Keyword search (!egrep)
+├── stats_handler.py         # Statistics
+├── tail_handler.py          # Recent documents
+├── related_handler.py       # Related documents
+├── index_handler.py         # Indexing
+├── migrate_handler.py       # Migration
+└── whoami_handler.py        # User info
 ```
 
-## Contributing
+### Content Readers
+```
+readers/
+├── base_reader.py           # Abstract base class
+├── arxiv_reader.py          # ArXiv paper processing
+├── github_reader.py         # GitHub repository analysis
+├── youtube_reader.py        # YouTube transcript extraction
+├── huggingface_reader.py    # Hugging Face model cards
+├── reddit_reader.py         # Reddit thread processing
+└── webpage_reader.py        # General web page content
+```
 
-Contributions are welcome! Feel free to open issues or submit pull requests to improve the Dont-Read-GPT bot.
+### Utilities
+```
+utils/
+└── embed_builder.py         # Discord embed generation
 
-## License
+tools/
+├── migrate_to_database.py   # CSV to SQLite migration
+└── db_helper.py             # Database maintenance utilities
+```
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+## 🗄️ Database Schema
+
+### Documents Table
+```sql
+documents (
+    id INTEGER PRIMARY KEY,
+    url TEXT UNIQUE NOT NULL,
+    type TEXT,                    -- 'arxiv', 'github', 'youtube', etc.
+    timestamp REAL,
+    summary TEXT,                 -- AI-generated summary
+    file_path TEXT,              -- Path to JSON file
+    content_preview TEXT,        -- First 500 chars of content
+    user_id TEXT,                -- User isolation
+    updated_at REAL             -- Last update timestamp
+)
+```
+
+### Keywords Table
+```sql
+keywords (
+    id INTEGER PRIMARY KEY,
+    keyword TEXT NOT NULL,
+    document_id INTEGER,
+    user_id TEXT,                -- User isolation
+    FOREIGN KEY (document_id) REFERENCES documents (id)
+)
+```
+
+### User Profiles Table (NEW!)
+```sql
+user_profiles (
+    user_id TEXT PRIMARY KEY,
+    current_memory_profile TEXT NOT NULL,  -- AI-processed research interests
+    raw_memories TEXT,                     -- JSON array of raw inputs
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+)
+```
+
+### Embeddings Table (Future Use)
+```sql
+embeddings (
+    document_id INTEGER PRIMARY KEY,
+    embedding BLOB,              -- Vector embeddings for similarity search
+    FOREIGN KEY (document_id) REFERENCES documents (id)
+)
+```
+
+## 🤖 AI Integration
+
+### Memory Processing
+- **User Research Profiles**: Store and synthesize research interests using GPT-4o-mini
+- **Personalized Summaries**: Generate "Why You Should Read This" sections for arXiv papers
+- **Context-Aware Processing**: Different summarization strategies for different content types
+
+### Summary Generation
+- **ArXiv Papers**: Enhanced academic summaries with technical depth
+- **Code Repositories**: Focus on functionality and technical implementation
+- **General Content**: Balanced summaries with key insights
+
+## 🔧 Configuration
+
+### Environment Variables
+```bash
+OPENAI_KEY=sk-...                    # Required: OpenAI API key
+DISCORD_TOKEN=your_discord_token     # Required: Discord bot token
+REDDIT_APP_ID=your_reddit_id         # Optional: Reddit API access
+REDDIT_APP_SECRET=your_reddit_secret # Optional: Reddit API access
+```
+
+### Bot Configuration
+```python
+# In my_bot.py
+AUTO_MIGRATE_EXISTING_DATA = False   # Set to True for automatic CSV migration
+```
+
+## 🎯 Key Features in Detail
+
+### Personalized Research Assistant
+The `!mem` command creates a personalized research experience:
+1. **Store Interests**: `!mem I study transformer architectures and attention mechanisms`
+2. **Get Recommendations**: ArXiv papers automatically include personalized relevance explanations
+3. **Privacy**: Each user's profile is completely isolated
+
+### Dual Storage Reliability
+- **SQLite Database**: Primary storage with full relational capabilities
+- **Legacy CSV System**: Backup storage ensuring no data loss during transitions
+- **Automatic Sync**: Both systems stay synchronized for reliability
+
+### Multi-User Support
+- **Complete Isolation**: Users only see their own documents and searches
+- **User-Specific Stats**: Personal document counts and keyword analytics
+- **Shared Knowledge**: Option to discover public documents (future feature)
+
+## 🧪 Testing
+
+The project includes comprehensive test suites:
+```bash
+# Core functionality tests
+python tests/test_phase1.py
+python tests/test_phase2.py
+python tests/test_phase3.py
+
+# Memory system tests
+python test_mem_phase1.py
+python test_mem_phase2.py
+python test_mem_phase3.py
+python test_mem_integration.py
+```
+
+## 🚀 Future Enhancements
+
+### Planned Features
+- **Vector Search**: Semantic similarity using embeddings
+- **Advanced Analytics**: Research trend analysis and insights
+- **Export Functions**: Save collections to files or Obsidian vaults
+- **Collaboration Features**: Share documents and create team collections
+
+### API Ready
+The modular architecture makes it easy to:
+- Add new content sources
+- Implement additional AI features
+- Create web interfaces
+- Build mobile applications
+
+## 📄 Documentation
+
+- [`how-to-en.md`](how-to-en.md) - Comprehensive English user guide
+- [`how-to-zh-cn.md`](how-to-zh-cn.md) - Chinese user documentation
+- [`IMPLEMENTATION_SUMMARY.md`](IMPLEMENTATION_SUMMARY.md) - Technical implementation details
+- [`UPDATED_COMMANDS_REFERENCE.md`](UPDATED_COMMANDS_REFERENCE.md) - Complete command reference
+
+## 🤝 Contributing
+
+The bot is designed for easy extension:
+1. **New Content Sources**: Inherit from `BaseReader` class
+2. **New Commands**: Add handler to `commands/` directory
+3. **Database Changes**: Update `database_manager.py` schema
+4. **AI Features**: Extend `ai_func.py` with new capabilities
+
+---
+
+**Built with Python, Discord.py, SQLite, and OpenAI GPT-4o for intelligent research assistance.**
