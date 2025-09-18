@@ -6,32 +6,38 @@ from readers.arxiv_reader import ArxivReader
 from readers.github_reader import GithubReader, GithubIpynbReader
 from readers.huggingface_reader import HuggingfaceReader
 from readers.pdf_reader import PDFReader, is_pdf_url
-# from readers.youtube_reader import YoutubeReader  # Temporarily disabled
+from readers.x_reader import XReader, is_x_url
+from readers.youtube_reader import YoutubeReader
 from readers.webpage_reader import WebpageReader
 
 def get_url_type_and_reader(url) -> tuple[str, BaseReader]:
     if not url.startswith('http://') and not url.startswith('https://'):
         url = 'https://' + url
     
-    # Temporarily disable YouTube functionality
-    # youtube_regex = (
-    #     r'(https?://)?(www\.)?'
-    #     '(youtube|youtu|youtube-nocookie)\.(com|be)/'
-    #     '(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
+    youtube_regex = (
+        r'(https?://)?(www\.)?'
+        '(youtube|youtu|youtube-nocookie)\.(com|be)/'
+        '(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
     huggingface_regex = (r'https?:\/\/huggingface\.co\/([^\/]+\/[^\/]+)')
+    hf_papers_regex = r'https?://huggingface\.co/papers/(\d{4}\.\d{4,5}(v\d+)?)'
 
     if 'github.com' in url and not 'ipynb' in url:
         return 'github', GithubReader()
     elif 'github.com' in url and 'ipynb' in url:
         return 'github_ipynb', GithubIpynbReader()
-    elif 'arxiv.org' in url:
+    elif re.search(r'https?://(www\.)?arxiv\.org/', url):
         return 'arxiv', ArxivReader()
+    elif is_x_url(url):  # Check for X.com/Twitter URLs
+        return 'x', XReader()
     elif is_pdf_url(url):  # Check for PDF URLs before general webpage
         return 'pdf', PDFReader()
     elif 'mp.weixin.qq.com' in url:
         return 'wechat', WebpageReader() # Assuming wechat uses general webpage reader
-    # elif re.match(youtube_regex, url):
-    #     return 'youtube', YoutubeReader()
+    elif re.match(youtube_regex, url):
+        return 'youtube', YoutubeReader()
+    elif re.match(hf_papers_regex, url):
+        # Route Hugging Face paper page to arXiv reader
+        return 'arxiv', ArxivReader()
     elif re.match(huggingface_regex, url):
         return 'huggingface', HuggingfaceReader()
     else:
@@ -81,6 +87,18 @@ def generate_file_path(url, file_type):
         # Clean the filename
         base_name = re.sub('[^0-9a-zA-Z\-_]', '_', base_name)
         file_name = f'pdf_{base_name}'
+    elif file_type == 'x':
+        # Extract tweet ID for X.com URLs
+        match = re.search(r'/status/(\d+)', url)
+        if match:
+            tweet_id = match.group(1)
+            file_name = f'x_{tweet_id}'
+        else:
+            # Fallback if tweet ID extraction fails
+            clean_url = re.sub('[^0-9a-zA-Z]+', '_', url)
+            if len(clean_url) > 50:
+                clean_url = clean_url[:50]
+            file_name = f'x_{clean_url}'
     else:
         file_name = re.sub('[^0-9a-zA-Z]+', '', url)
         if len(file_name) > 100:

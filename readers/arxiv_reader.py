@@ -5,19 +5,36 @@ from bs4 import BeautifulSoup
 from .base_reader import BaseReader
 
 def download_arxiv_pdf(arxiv_link, local_directory):
-    # Handle different arXiv URL formats by converting to PDF link
-    if arxiv_link.startswith("https://arxiv.org/abs/"):
-        pdf_link = arxiv_link.replace("https://arxiv.org/abs/", "https://arxiv.org/pdf/") + ".pdf"
-    elif arxiv_link.startswith("https://arxiv.org/pdf/"):
-        pdf_link = arxiv_link
-    elif arxiv_link.startswith("https://arxiv.org/html/") or arxiv_link.startswith("https://browse.arxiv.org/html/"):
-        # Extract paper ID from HTML URL and convert to PDF URL
-        paper_id = extract_arxiv_id(arxiv_link, include_version=False)
-        if paper_id:
-            pdf_link = f"https://arxiv.org/pdf/{paper_id}.pdf"
-        else:
-            raise ValueError("Could not extract paper ID from HTML URL")
+    """
+    Download the arXiv PDF for a given link. Accepts various arXiv URL formats and
+    also supports Hugging Face papers pages (https://huggingface.co/papers/<id>)
+    by extracting the arXiv ID and constructing the proper PDF URL.
+    """
+    # Normalize optional www in domain
+    if '://www.arxiv.org/' in arxiv_link:
+        arxiv_link = arxiv_link.replace('://www.arxiv.org/', '://arxiv.org/')
+
+    pdf_link = None
+
+    # First, try to extract the arXiv ID from any supported URL (incl. HF papers)
+    arxiv_id = extract_arxiv_id(arxiv_link, include_version=False)
+    if arxiv_id:
+        pdf_link = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
     else:
+        # Fallback to explicit pattern handling
+        if arxiv_link.startswith("https://arxiv.org/abs/"):
+            pdf_link = arxiv_link.replace("https://arxiv.org/abs/", "https://arxiv.org/pdf/") + ".pdf"
+        elif arxiv_link.startswith("https://arxiv.org/pdf/"):
+            pdf_link = arxiv_link if arxiv_link.endswith('.pdf') else f"{arxiv_link}.pdf"
+        elif arxiv_link.startswith("https://arxiv.org/html/") or arxiv_link.startswith("https://browse.arxiv.org/html/"):
+            # Extract paper ID from HTML URL and convert to PDF URL
+            paper_id = extract_arxiv_id(arxiv_link, include_version=False)
+            if paper_id:
+                pdf_link = f"https://arxiv.org/pdf/{paper_id}.pdf"
+            else:
+                raise ValueError("Could not extract paper ID from HTML URL")
+
+    if not pdf_link:
         raise ValueError("Invalid arXiv link")
 
     pdf_filename = pdf_link.split("/")[-1]
@@ -35,17 +52,21 @@ def extract_arxiv_id(url, include_version=False):
     # Patterns for different types of Arxiv URLs (supporting both http and https)
     patterns = [
         r'https?://browse\.arxiv\.org/html/(\d{4}\.\d{4,5}v?\d*)',  # HTML version (browse)
-        r'https?://arxiv\.org/html/(\d{4}\.\d{4,5}v?\d*)',         # HTML version (direct)
-        r'https?://arxiv\.org/abs/(\d{4}\.\d{4,5}v?\d*)',          # Abstract page (with version support)
+        r'https?://(www\.)?arxiv\.org/html/(\d{4}\.\d{4,5}v?\d*)',  # HTML version (direct, optional www)
+        r'https?://(www\.)?arxiv\.org/abs/(\d{4}\.\d{4,5}v?\d*)',   # Abstract page (with version support, optional www)
         # pdf page may or may not have .pdf extension
-        r'https?://arxiv\.org/pdf/(\d{4}\.\d{4,5}v?\d*)',           # PDF version new
-        r'https?://arxiv\.org/pdf/(\d{4}\.\d{4,5}v?\d*)\.pdf'       # PDF version old
+        r'https?://(www\.)?arxiv\.org/pdf/(\d{4}\.\d{4,5}v?\d*)',   # PDF version new (optional www)
+        r'https?://(www\.)?arxiv\.org/pdf/(\d{4}\.\d{4,5}v?\d*)\.pdf', # PDF version old (optional www)
+        r'https?://huggingface\.co/papers/(\d{4}\.\d{4,5}(v\d+)?)'   # Hugging Face papers page
     ]
 
     for pattern in patterns:
         match = re.search(pattern, url)
         if match:
-            arxiv_id_full = match.group(1)
+            # For patterns with optional groups (e.g., optional 'www.'), select the last
+            # non-empty capturing group, which corresponds to the arXiv ID.
+            groups = [g for g in match.groups() if g]
+            arxiv_id_full = groups[-1] if groups else match.group(1)
             # Extract base Arxiv ID without version if not required
             if not include_version:
                 arxiv_id_base = re.match(r'(\d{4}\.\d{4,5})', arxiv_id_full).group(1)
