@@ -41,6 +41,10 @@ async def handle_wget(message, indexer: Indexer, db_manager: DatabaseManager):
         if len(parts) > 1:
             focus = ' '.join(parts[1:]).strip()
 
+    url, arxiv_id_detected = normalize_arxiv_identifier(url)
+    if arxiv_id_detected:
+        use_arxiv_prompt = True
+
     # Check if this is an arXiv URL for BOTH !wget command and direct URL
     if is_arxiv_url(url):
         use_arxiv_prompt = True
@@ -297,6 +301,20 @@ async def handle_wget(message, indexer: Indexer, db_manager: DatabaseManager):
         import traceback
         print(f'An error occurred while processing {url}: {e}')
         traceback.print_exc()
+
+def normalize_arxiv_identifier(candidate: str):
+    """Return normalized arXiv URL when the input is a bare identifier."""
+    if not candidate:
+        return candidate, False
+
+    candidate = candidate.strip()
+    match = re.fullmatch(r'(?:arxiv:)?(\d{4}\.\d{4,5}(?:v\d+)?)', candidate, flags=re.IGNORECASE)
+    if not match:
+        return candidate, False
+
+    arxiv_id = match.group(1)
+    normalized_url = f"https://arxiv.org/abs/{arxiv_id}"
+    return normalized_url, True
 
 def is_arxiv_url(url):
     """Check if the URL is an arXiv paper URL"""

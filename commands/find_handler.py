@@ -5,6 +5,10 @@ from commands.wget_handler import handle_wget
 
 # ---- Helper Functions for Title-only Search ----
 
+def _sanitize_query_text(text: str) -> str:
+    text = re.sub(r'[^0-9a-zA-Z\s]+', ' ', text)
+    return re.sub(r'\s+', ' ', text).strip()
+
 def _normalize_title(text: str) -> str:
     text = text.lower()
     # Remove punctuation except alphanumerics and spaces
@@ -93,9 +97,9 @@ async def handle_find(message, indexer, db_manager):
     """
     
     # Extract keywords after !find
-    content = message.content[5:].strip()  # Remove "!find" prefix
+    raw_content = message.content[5:].strip()  # Remove "!find" prefix
     
-    if not content:
+    if not raw_content:
         embed = discord.Embed(
             title="🔍 arXiv Search Help",
             description="Search for the top arXiv paper matching your keywords.",
@@ -113,6 +117,11 @@ async def handle_find(message, indexer, db_manager):
         )
         embed.set_footer(text="Tip: No quotes needed for multi-word searches")
         await message.channel.send(embed=embed)
+        return
+
+    content = _sanitize_query_text(raw_content)
+    if not content:
+        await message.channel.send("❌ Please provide search terms containing letters or numbers after removing special characters.")
         return
 
     # Provide immediate feedback
